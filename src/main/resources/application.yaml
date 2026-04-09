@@ -1,0 +1,68 @@
+spring:
+  application:
+    name: talkblog-back
+
+  # 数据源配置
+  datasource:
+    url: jdbc:postgresql://localhost:5432/talkblog
+    username: postgres
+    password: yourpassword
+    driver-class-name: org.postgresql.Driver
+    # HikariCP 连接池配置
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+
+# 日志配置
+logging:
+  # 日志级别
+  level:
+    # 根日志级别
+    root: INFO
+    # 应用包日志级别
+    com.revy: DEBUG
+    # MyBatis 日志
+    com.revy.talkblogback.mapper: DEBUG
+    org.mybatis: DEBUG
+    # SQL 日志
+    org.apache.ibatis: DEBUG
+    java.sql: DEBUG
+    # 连接池日志
+    com.zaxxer.hikari: INFO
+    # Spring 框架日志
+    org.springframework: INFO
+    org.springframework.web: DEBUG
+    org.springframework.boot: INFO
+  # 日志文件配置
+  file:
+    name: logs/talkblog-back.log
+  # 日志输出格式
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+  # 日志滚动策略
+  logback:
+    rollingpolicy:
+      max-file-size: 10MB
+      max-history: 30
+      total-size-cap: 1GB
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: always
+
+# 服务器配置
+server:
+  port: 8080
+  # 压缩配置
+  compression:
+    enabled: true
+    mime-types: application/json,application/xml,text/html,text/xml,text/plain
