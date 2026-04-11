@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.revy.talkblogback.mapper.FaceVectorMapper">
+
+    <!--
+      FaceVector 结果映射。
+      face_vector 字段必须显式绑定自定义 TypeHandler，否则无法正确映射为 float[]。
+    -->
+    <resultMap id="FaceVectorResultMap" type="com.revy.talkblogback.pojo.FaceVector">
+        <id column="vector_id" property="vectorId"/>
+        <result column="user_id" property="userId"/>
+        <result column="face_vector" property="faceVector" typeHandler="com.revy.talkblogback.handler.PgVectorTypeHandler"/>
+        <result column="face_image_url" property="faceImageUrl"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+    </resultMap>
+
+    <!-- 插入人脸向量 -->
+    <insert id="insertFaceVector" useGeneratedKeys="true" keyProperty="vectorId" keyColumn="vector_id">
+        INSERT INTO face_vectors (user_id, face_vector, face_image_url, created_at, updated_at)
+        VALUES (#{userId}, #{faceVector, typeHandler=com.revy.talkblogback.handler.PgVectorTypeHandler}, #{faceImageUrl}, NOW(), NOW())
+    </insert>
+
+    <!-- 根据用户ID查询人脸向量 -->
+    <select id="getFaceVectorByUserId" resultMap="FaceVectorResultMap">
+        SELECT vector_id, user_id, face_vector, face_image_url, created_at, updated_at
+        FROM face_vectors
+        WHERE user_id = #{userId}
+    </select>
+
+    <!-- 查询最相似的人脸向量 -->
+    <select id="findClosestFaceVector" resultMap="FaceVectorResultMap">
+        SELECT vector_id, user_id, face_vector, face_image_url, created_at, updated_at
+        FROM face_vectors
+        ORDER BY face_vector <![CDATA[<=>]]> #{queryVector, typeHandler=com.revy.talkblogback.handler.PgVectorTypeHandler}
+        LIMIT 1
+    </select>
+
+</mapper>

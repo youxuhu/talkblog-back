@@ -1,0 +1,27 @@
+{
+    "properties": [
+        {
+            "name": "face.service.url",
+            "type": "java.lang.String",
+            "description": "Python 人脸向量服务基础地址。"
+        },
+        {
+            "name": "face.service.extract-endpoint",
+            "type": "java.lang.String",
+            "defaultValue": "/extract",
+            "description": "人脸向量提取接口路径。"
+        },
+        {
+            "name": "face.service.health-endpoint",
+            "type": "java.lang.String",
+            "defaultValue": "/health",
+            "description": "健康检查接口路径。"
+        },
+        {
+            "name": "face.service.timeout",
+            "type": "java.lang.Integer",
+            "defaultValue": 30000,
+            "description": "调用超时（毫秒）。"
+        }
+    ]
+}

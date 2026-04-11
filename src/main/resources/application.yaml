@@ -23,19 +23,19 @@ logging:
     # 根日志级别
     root: INFO
     # 应用包日志级别
-    com.revy: DEBUG
+    "[com.revy]": DEBUG
     # MyBatis 日志
-    com.revy.talkblogback.mapper: DEBUG
-    org.mybatis: DEBUG
+    "[com.revy.talkblogback.mapper]": DEBUG
+    "[org.mybatis]": DEBUG
     # SQL 日志
-    org.apache.ibatis: DEBUG
-    java.sql: DEBUG
+    "[org.apache.ibatis]": DEBUG
+    "[java.sql]": DEBUG
     # 连接池日志
-    com.zaxxer.hikari: INFO
+    "[com.zaxxer.hikari]": INFO
     # Spring 框架日志
-    org.springframework: INFO
-    org.springframework.web: DEBUG
-    org.springframework.boot: INFO
+    "[org.springframework]": INFO
+    "[org.springframework.web]": DEBUG
+    "[org.springframework.boot]": INFO
   # 日志文件配置
   file:
     name: logs/talkblog-back.log
@@ -59,6 +59,14 @@ management:
     health:
       show-details: always
 
+# 人脸识别服务配置
+face:
+  service:
+    url: http://localhost:5000
+    extract-endpoint: /extract
+    health-endpoint: /health
+    timeout: 30000  # 30秒超时
+
 # 服务器配置
 server:
   port: 8080
@@ -66,3 +74,15 @@ server:
   compression:
     enabled: true
     mime-types: application/json,application/xml,text/html,text/xml,text/plain
+
+# MyBatis 配置
+mybatis:
+  # XML 映射文件位置
+  mapper-locations: classpath:/mapper/*.xml
+  # 类型别名包（便于 XML 中简写类型）
+  type-aliases-package: com.revy.talkblogback.pojo
+  # TypeHandler 扫描路径
+  type-handlers-package: com.revy.talkblogback.handler
+  configuration:
+    # 将下划线命名自动映射到驼峰字段，例如 user_id -> userId
+    map-underscore-to-camel-case: true

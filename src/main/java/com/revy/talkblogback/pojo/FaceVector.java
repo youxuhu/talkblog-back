@@ -10,10 +10,16 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @NoArgsConstructor
 public class FaceVector {
+
     private Long vectorId;
+
     private Long userId;
-    private String faceVector;
+
+    private float[] faceVector;
+
     private String faceImageUrl;
+
     private LocalDateTime createdAt;
+
     private LocalDateTime updatedAt;
 }

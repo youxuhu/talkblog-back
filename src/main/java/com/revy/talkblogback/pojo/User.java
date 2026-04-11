@@ -15,6 +15,7 @@ public class User {
     private String phone;
     private String passwordHash;
     private Long faceVectorId;
+    private String loginType;
     private String avatarUrl;
     private Short status;
     private LocalDateTime createdAt;
