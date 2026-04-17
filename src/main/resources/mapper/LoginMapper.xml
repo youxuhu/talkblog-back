@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.revy.talkblogback.mapper.LoginMapper">
+
+    <!-- User 结果映射 -->
+    <resultMap id="UserResultMap" type="com.revy.talkblogback.pojo.User">
+        <id column="user_id" property="userId"/>
+        <result column="username" property="username"/>
+        <result column="email" property="email"/>
+        <result column="phone" property="phone"/>
+        <result column="password_hash" property="passwordHash"/>
+        <result column="face_vector_id" property="faceVectorId"/>
+        <result column="login_type" property="loginType"/>
+        <result column="avatar_url" property="avatarUrl"/>
+        <result column="status" property="status"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+        <result column="last_login_time" property="lastLoginTime"/>
+    </resultMap>
+
+    <!-- FaceVector 结果映射 -->
+    <resultMap id="FaceVectorResultMap" type="com.revy.talkblogback.pojo.FaceVector">
+        <id column="vector_id" property="vectorId"/>
+        <result column="user_id" property="userId"/>
+        <result column="face_vector" property="faceVector" typeHandler="com.revy.talkblogback.handler.PgVectorTypeHandler"/>
+        <result column="face_image_url" property="faceImageUrl"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+    </resultMap>
+
+    <!-- 根据邮箱查询用户 -->
+    <select id="findUserByEmail" parameterType="String" resultMap="UserResultMap">
+        SELECT user_id, username, email, phone, password_hash, face_vector_id, login_type, avatar_url,
+               status, created_at, updated_at, last_login_time
+        FROM users
+        WHERE email = #{email}
+        LIMIT 1
+    </select>
+
+    <!-- 插入用户信息 -->
+    <insert id="insertUser" parameterType="com.revy.talkblogback.pojo.User" useGeneratedKeys="true"
+            keyProperty="userId" keyColumn="user_id">
+        INSERT INTO users (username, email, password_hash, status, login_type, created_at, updated_at)
+        VALUES (#{username}, #{email}, #{passwordHash}, #{status}, #{loginType}, NOW(), NOW())
+    </insert>
+
+    <!-- 将用户与人脸向量绑定 -->
+    <update id="bindFaceVector">
+        UPDATE users
+        SET face_vector_id = #{faceVectorId}, login_type = 'FACE', updated_at = NOW()
+        WHERE user_id = #{userId}
+    </update>
+
+    <!-- 给用户分配默认角色 USER -->
+    <insert id="assignDefaultUserRole">
+        INSERT INTO user_roles (user_id, role_id)
+        SELECT #{userId}, role_id
+        FROM roles
+        WHERE role_name = 'USER'
+        ON CONFLICT (user_id, role_id) DO NOTHING
+    </insert>
+
+    <!-- 根据用户 ID 查询对应的人脸向量 -->
+    <select id="findFaceVectorByUserId" parameterType="Long" resultMap="FaceVectorResultMap">
+        SELECT vector_id, user_id, face_vector, face_image_url, created_at, updated_at
+        FROM face_vectors
+        WHERE user_id = #{userId}
+        LIMIT 1
+    </select>
+
+    <!-- 计算指定用户的人脸向量与输入向量之间的余弦距离 -->
+    <select id="computeCosineDistanceByUserId" resultType="Double">
+        SELECT face_vector <![CDATA[<=>]]> #{queryVector, typeHandler=com.revy.talkblogback.handler.PgVectorTypeHandler}
+        FROM face_vectors
+        WHERE user_id = #{userId}
+        LIMIT 1
+    </select>
+
+    <!-- 更新最后登录时间 -->
+    <update id="updateLastLoginTime">
+        UPDATE users
+        SET last_login_time = NOW(), updated_at = NOW()
+        WHERE user_id = #{userId}
+    </update>
+
+</mapper>

@@ -1,0 +1,90 @@
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] -----------------------< com.revy:talkblog-back >-----------------------
+[INFO] Building talkblog-back 0.0.1-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ talkblog-back ---
+[INFO] Copying 1 resource from src/main/resources to target/classes
+[INFO] Copying 3 resources from src/main/resources to target/classes
+[INFO] 
+[INFO] --- compiler:3.14.1:compile (default-compile) @ talkblog-back ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ talkblog-back ---
+[INFO] skip non existing resourceDirectory /home/revy/IdeaProjects/talkblog-back/src/test/resources
+[INFO] 
+[INFO] --- compiler:3.14.1:testCompile (default-testCompile) @ talkblog-back ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- surefire:3.5.5:test (default-test) @ talkblog-back ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running com.revy.talkblogback.TalkblogBackApplicationTests
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.016 s -- in com.revy.talkblogback.TalkblogBackApplicationTests
+[INFO] Running com.revy.talkblogback.controller.LoginControllerTest
+17:45:30.918 [main] INFO org.springframework.test.context.support.AnnotationConfigContextLoaderUtils -- Could not detect default configuration classes for test class [com.revy.talkblogback.controller.LoginControllerTest]: LoginControllerTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+17:45:30.984 [main] INFO org.springframework.boot.test.context.SpringBootTestContextBootstrapper -- Found @SpringBootConfiguration com.revy.talkblogback.TalkblogBackApplication for test class com.revy.talkblogback.controller.LoginControllerTest
+17:45:31.011 [main] INFO org.springframework.boot.devtools.restart.RestartApplicationListener -- Restart disabled due to context in which it is running
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::               (v3.5.13)
+
+2026-04-17 17:45:31.163 [main] INFO  c.r.t.controller.LoginControllerTest - Starting LoginControllerTest using Java 21.0.10 with PID 42798 (started by revy in /home/revy/IdeaProjects/talkblog-back)
+2026-04-17 17:45:31.164 [main] DEBUG c.r.t.controller.LoginControllerTest - Running with Spring Boot v3.5.13, Spring v6.2.17
+2026-04-17 17:45:31.164 [main] INFO  c.r.t.controller.LoginControllerTest - No active profile set, falling back to 1 default profile: "default"
+2026-04-17 17:45:31.169 [main] DEBUG o.s.w.c.s.GenericWebApplicationContext - Refreshing org.springframework.web.context.support.GenericWebApplicationContext@5af97169
+Mockito is currently self-attaching to enable the inline-mock-maker. This will no longer work in future releases of the JDK. Please add Mockito as an agent to your build as described in Mockito's documentation: https://javadoc.io/doc/org.mockito/mockito-core/latest/org.mockito/org/mockito/Mockito.html#0.3
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+WARNING: A Java agent has been loaded dynamically (/home/revy/.m2/repository/net/bytebuddy/byte-buddy-agent/1.17.8/byte-buddy-agent-1.17.8.jar)
+WARNING: If a serviceability tool is in use, please run with -XX:+EnableDynamicAgentLoading to hide this warning
+WARNING: If a serviceability tool is not in use, please run with -Djdk.instrument.traceUsage for more information
+WARNING: Dynamic loading of agents will be disallowed by default in a future release
+2026-04-17 17:45:31.876 [main] DEBUG o.s.w.s.m.m.a.RequestMappingHandlerMapping - 4 mappings in 'requestMappingHandlerMapping'
+2026-04-17 17:45:31.910 [main] DEBUG o.s.w.s.h.SimpleUrlHandlerMapping - Patterns [/webjars/**, /**] in 'resourceHandlerMapping'
+2026-04-17 17:45:31.924 [main] DEBUG o.s.w.s.m.m.a.RequestMappingHandlerAdapter - ControllerAdvice beans: 0 @ModelAttribute, 0 @InitBinder, 1 RequestBodyAdvice, 1 ResponseBodyAdvice
+2026-04-17 17:45:31.949 [main] DEBUG o.s.w.s.m.m.a.ExceptionHandlerExceptionResolver - ControllerAdvice beans: 0 @ExceptionHandler, 1 ResponseBodyAdvice
+2026-04-17 17:45:31.965 [main] INFO  o.s.b.t.m.w.SpringBootMockServletContext - Initializing Spring TestDispatcherServlet ''
+2026-04-17 17:45:31.965 [main] INFO  o.s.t.w.s.TestDispatcherServlet - Initializing Servlet ''
+2026-04-17 17:45:31.966 [main] INFO  o.s.t.w.s.TestDispatcherServlet - Completed initialization in 1 ms
+2026-04-17 17:45:31.979 [main] INFO  c.r.t.controller.LoginControllerTest - Started LoginControllerTest in 0.972 seconds (process running for 1.349)
+2026-04-17 17:45:32.029 [main] DEBUG o.s.w.s.m.m.a.RequestMappingHandlerMapping - Mapped to com.revy.talkblogback.controller.LoginController#login(FaceLoginRequest)
+2026-04-17 17:45:32.056 [main] DEBUG o.s.w.s.m.m.a.RequestResponseBodyMethodProcessor - Read "application/json;charset=UTF-8" to [FaceLoginRequest(email=demo@test.com, image=base64-image)]
+2026-04-17 17:45:32.070 [main] DEBUG o.s.w.s.m.m.a.HttpEntityMethodProcessor - Using 'application/json', given [*/*] and supported [application/json, application/*+json]
+2026-04-17 17:45:32.071 [main] DEBUG o.s.w.s.m.m.a.HttpEntityMethodProcessor - Writing [{success=false, message=Email or face not matched}]
+2026-04-17 17:45:32.099 [main] DEBUG o.s.w.s.m.m.a.RequestMappingHandlerMapping - Mapped to com.revy.talkblogback.controller.LoginController#register(RegisterRequest)
+2026-04-17 17:45:32.101 [main] DEBUG o.s.w.s.m.m.a.RequestResponseBodyMethodProcessor - Read "application/json;charset=UTF-8" to [RegisterRequest(email=demo@test.com, username=demo, password=123456, image=base64-image)]
+2026-04-17 17:45:32.102 [main] DEBUG o.s.w.s.m.m.a.HttpEntityMethodProcessor - Using 'application/json', given [*/*] and supported [application/json, application/*+json]
+2026-04-17 17:45:32.102 [main] DEBUG o.s.w.s.m.m.a.HttpEntityMethodProcessor - Writing [{success=true, message=Registration successful}]
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.237 s -- in com.revy.talkblogback.controller.LoginControllerTest
+[INFO] Running com.revy.talkblogback.handler.PgVectorTypeHandlerTest
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.201 s -- in com.revy.talkblogback.handler.PgVectorTypeHandlerTest
+[INFO] Running com.revy.talkblogback.pojo.request.RegisterRequestTest
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.001 s -- in com.revy.talkblogback.pojo.request.RegisterRequestTest
+[INFO] Running com.revy.talkblogback.service.FaceVectorServiceTest
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.023 s -- in com.revy.talkblogback.service.FaceVectorServiceTest
+[INFO] Running com.revy.talkblogback.service.LoginServiceImplTest
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s -- in com.revy.talkblogback.service.LoginServiceImplTest
+[INFO] Running com.revy.talkblogback.service.UserServiceTest
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.132 s -- in com.revy.talkblogback.service.UserServiceTest
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 17, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  2.389 s
+[INFO] Finished at: 2026-04-17T17:45:32+08:00
+[INFO] ------------------------------------------------------------------------
