@@ -31,3 +31,6 @@ build/
 
 ### VS Code ###
 .vscode/
+
+# Face vector model artifacts
+face_vector_service/models/

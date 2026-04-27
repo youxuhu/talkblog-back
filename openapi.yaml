@@ -1,0 +1,322 @@
+openapi: 3.0.3
+info:
+  title: TalkBlog Back API
+  version: 1.0.0
+  description: OpenAPI spec for TalkBlog backend services
+servers:
+  - url: http://localhost:8080
+    description: Local development server
+
+tags:
+  - name: Auth
+    description: Authentication APIs
+  - name: Face
+    description: Face vector APIs
+  - name: Health
+    description: Service health check
+
+paths:
+  /api/auth/register:
+    post:
+      tags:
+        - Auth
+      summary: User register
+      operationId: registerUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+            example:
+              email: user@example.com
+              username: revy
+              password: "123456"
+              image: data:image/jpeg;base64,/9j/4AAQSk...
+      responses:
+        '200':
+          description: Registration result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResult'
+              examples:
+                success:
+                  value:
+                    success: true
+                    message: Registration successful
+                failed:
+                  value:
+                    success: false
+                    message: Email already exists
+        '400':
+          description: Validation or business error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResult'
+              example:
+                success: false
+                message: Invalid request
+
+  /api/auth/login:
+    post:
+      tags:
+        - Auth
+      summary: Face login
+      operationId: faceLogin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FaceLoginRequest'
+            example:
+              email: user@example.com
+              image: data:image/jpeg;base64,/9j/4AAQSk...
+      responses:
+        '200':
+          description: Login result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResult'
+              examples:
+                success:
+                  value:
+                    success: true
+                    message: Login successful
+                failed:
+                  value:
+                    success: false
+                    message: Email or face not matched
+        '400':
+          description: Validation or business error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResult'
+              example:
+                success: false
+                message: Invalid request
+
+  /api/face/register:
+    post:
+      tags:
+        - Face
+      summary: Register face vector
+      operationId: registerFaceVector
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FaceVector'
+            example:
+              userId: 1
+              faceVector:
+                - 0.12
+                - -0.08
+                - 0.34
+                - 0.91
+              faceImageUrl: https://example.com/face/1.jpg
+      responses:
+        '200':
+          description: Registered successfully
+          content:
+            text/plain:
+              schema:
+                type: string
+              example: Face vector registered successfully!
+
+  /api/face/user/{userId}:
+    get:
+      tags:
+        - Face
+      summary: Get face vector by user id
+      operationId: getFaceVectorByUserId
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: User id
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Face vector
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FaceVector'
+
+  /api/face/match:
+    post:
+      tags:
+        - Face
+      summary: Match nearest face vector
+      operationId: matchFaceVector
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FaceMatchRequest'
+            example:
+              face_vector:
+                - 0.11
+                - -0.05
+                - 0.29
+                - 0.88
+      responses:
+        '200':
+          description: Best matched face vector
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FaceVector'
+        '400':
+          description: Invalid face_vector payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /actuator/health:
+    get:
+      tags:
+        - Health
+      summary: Service health check
+      operationId: healthCheck
+      responses:
+        '200':
+          description: Service status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              example:
+                status: UP
+
+components:
+  schemas:
+    RegisterRequest:
+      type: object
+      required:
+        - email
+        - username
+        - password
+        - image
+      properties:
+        email:
+          type: string
+          description: User email
+          example: user@example.com
+        username:
+          type: string
+          description: Username
+          example: revy
+        password:
+          type: string
+          description: Raw password
+          example: "123456"
+        image:
+          type: string
+          description: Base64 face image string
+          example: data:image/jpeg;base64,/9j/4AAQSk...
+
+    FaceLoginRequest:
+      type: object
+      required:
+        - email
+        - image
+      properties:
+        email:
+          type: string
+          description: User email
+          example: user@example.com
+        image:
+          type: string
+          description: Base64 face image string
+          example: data:image/jpeg;base64,/9j/4AAQSk...
+
+    FaceVector:
+      type: object
+      properties:
+        vectorId:
+          type: integer
+          format: int64
+          description: Face vector record id
+          example: 100
+        userId:
+          type: integer
+          format: int64
+          description: User id
+          example: 1
+        faceVector:
+          type: array
+          description: Face feature vector
+          items:
+            type: number
+            format: float
+          example:
+            - 0.12
+            - -0.08
+            - 0.34
+            - 0.91
+        faceImageUrl:
+          type: string
+          description: Face image URL
+          example: https://example.com/face/1.jpg
+        createdAt:
+          type: string
+          format: date-time
+          description: Creation time
+          example: '2026-04-18T10:30:00'
+        updatedAt:
+          type: string
+          format: date-time
+          description: Update time
+          example: '2026-04-18T10:30:00'
+
+    FaceMatchRequest:
+      type: object
+      required:
+        - face_vector
+      properties:
+        face_vector:
+          type: array
+          description: Query face vector for matching
+          items:
+            type: number
+            format: float
+          example:
+            - 0.11
+            - -0.05
+            - 0.29
+            - 0.88
+
+    AuthResult:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: Login successful
+
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: UP
+
+    ErrorResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: Invalid request
