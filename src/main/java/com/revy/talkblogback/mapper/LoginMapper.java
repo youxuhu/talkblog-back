@@ -2,8 +2,11 @@ package com.revy.talkblogback.mapper;
 
 import com.revy.talkblogback.pojo.FaceVector;
 import com.revy.talkblogback.pojo.User;
+import com.revy.talkblogback.pojo.dto.UserPageRow;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
 
 /**
  * 登录与注册相关的数据访问组件。
@@ -18,6 +21,14 @@ public interface LoginMapper {
          * @return 用户信息，不存在时返回 null
          */
         User findUserByEmail(@Param("email") String email);
+
+        /**
+         * 根据用户 ID 查询用户。
+         *
+         * @param userId 用户 ID
+         * @return 用户信息，不存在时返回 null
+         */
+        User findUserById(@Param("userId") Long userId);
 
         /**
          * 插入用户信息。
@@ -69,4 +80,39 @@ public interface LoginMapper {
          * @return 影响行数
          */
         int updateLastLoginTime(@Param("userId") Long userId);
+
+        /**
+         * 查询用户角色名称列表。
+         *
+         * @param userId 用户 ID
+         * @return 角色名称列表
+         */
+        List<String> findRoleNamesByUserId(@Param("userId") Long userId);
+
+        /**
+         * 分页查询用户。
+         *
+         * @param keyword 搜索关键字
+         * @param offset  偏移量
+         * @param limit   页大小
+         * @return 用户列表
+         */
+        List<UserPageRow> pageUsers(@Param("keyword") String keyword, @Param("offset") int offset, @Param("limit") int limit);
+
+        /**
+         * 统计用户总数。
+         *
+         * @param keyword 搜索关键字
+         * @return 用户总数
+         */
+        long countUsers(@Param("keyword") String keyword);
+
+        /**
+         * 更新用户状态。
+         *
+         * @param userId 用户 ID
+         * @param status 新状态
+         * @return 影响行数
+         */
+        int updateUserStatus(@Param("userId") Long userId, @Param("status") Short status);
 }

@@ -1,10 +1,15 @@
 package com.revy.talkblogback.service;
 
+import com.revy.talkblogback.auth.JwtTokenService;
 import com.revy.talkblogback.config.FaceServiceProperties;
 import com.revy.talkblogback.mapper.FaceVectorMapper;
 import com.revy.talkblogback.mapper.LoginMapper;
 import com.revy.talkblogback.pojo.FaceVector;
+import com.revy.talkblogback.pojo.dto.UserPageRow;
 import com.revy.talkblogback.pojo.User;
+import com.revy.talkblogback.pojo.response.AuthResult;
+import com.revy.talkblogback.pojo.response.PageResult;
+import com.revy.talkblogback.pojo.response.UserProfile;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -18,9 +23,11 @@ import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.time.LocalDateTime;
 
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
@@ -40,16 +47,19 @@ public class UserService {
     private final RestTemplate restTemplate;
     private final BCryptPasswordEncoder passwordEncoder;
     private final FaceServiceProperties faceServiceProperties;
+    private final JwtTokenService jwtTokenService;
 
     public UserService(
             LoginMapper loginMapper,
             FaceVectorMapper faceVectorMapper,
             RestTemplate restTemplate,
-            FaceServiceProperties faceServiceProperties) {
+            FaceServiceProperties faceServiceProperties,
+            JwtTokenService jwtTokenService) {
         this.loginMapper = loginMapper;
         this.faceVectorMapper = faceVectorMapper;
         this.restTemplate = restTemplate;
         this.faceServiceProperties = faceServiceProperties;
+        this.jwtTokenService = jwtTokenService;
         this.passwordEncoder = new BCryptPasswordEncoder();
     }
 
@@ -120,14 +130,44 @@ public class UserService {
     }
 
     /**
+     * 密码登录逻辑。
+     *
+     * @param email    邮箱
+     * @param password 原始密码
+     * @return 登录结果，失败时返回 null
+     */
+    public AuthResult loginByPassword(String email, String password) {
+        if (!StringUtils.hasText(email)) {
+            throw new IllegalArgumentException("Email is required for login.");
+        }
+        if (!StringUtils.hasText(password)) {
+            throw new IllegalArgumentException("Password is required for login.");
+        }
+
+        User user = loginMapper.findUserByEmail(email.trim().toLowerCase());
+        if (user == null) {
+            return null;
+        }
+        if (user.getStatus() == null || user.getStatus() != User.STATUS_NORMAL) {
+            return null;
+        }
+        if (!passwordEncoder.matches(password, user.getPasswordHash())) {
+            return null;
+        }
+
+        loginMapper.updateLastLoginTime(user.getUserId());
+        return buildAuthResult(user);
+    }
+
+    /**
      * 人脸登录逻辑。
      * 登录时必须提供邮箱与人脸图片（base64）。
      *
      * @param email     用户邮箱
      * @param faceImage 人脸图片 base64
-     * @return 登录是否成功
+     * @return 登录结果，失败时返回 null
      */
-    public boolean login(String email, String faceImage) {
+    public AuthResult loginByFace(String email, String faceImage) {
         if (!StringUtils.hasText(email)) {
             throw new IllegalArgumentException("Email is required for login.");
         }
@@ -137,24 +177,62 @@ public class UserService {
 
         User user = loginMapper.findUserByEmail(email.trim().toLowerCase());
         if (user == null) {
-            return false;
+            return null;
         }
         if (user.getStatus() == null || user.getStatus() != User.STATUS_NORMAL) {
-            return false;
+            return null;
         }
 
         float[] queryVector = extractFaceVector(faceImage);
         if (queryVector == null || queryVector.length == 0) {
-            return false;
+            return null;
         }
 
         Double distance = loginMapper.computeCosineDistanceByUserId(user.getUserId(), queryVector);
         if (distance == null || distance > FACE_LOGIN_THRESHOLD) {
-            return false;
+            return null;
         }
 
         loginMapper.updateLastLoginTime(user.getUserId());
-        return true;
+        user.setLastLoginTime(LocalDateTime.now());
+        return buildAuthResult(user);
+    }
+
+    /**
+     * 兼容旧接口：邮箱 + 人脸登录。
+     *
+     * @param email     邮箱
+     * @param faceImage 人脸图片 base64
+     * @return 是否登录成功
+     */
+    public boolean login(String email, String faceImage) {
+        return loginByFace(email, faceImage) != null;
+    }
+
+    public PageResult<UserProfile> pageUsers(int page, int size, String keyword) {
+        int safePage = Math.max(page, 1);
+        int safeSize = Math.max(size, 1);
+        int offset = (safePage - 1) * safeSize;
+
+        List<UserPageRow> rows = loginMapper.pageUsers(keyword, offset, safeSize);
+        long total = loginMapper.countUsers(keyword);
+        List<UserProfile> list = new ArrayList<>();
+        for (UserPageRow row : rows) {
+            list.add(toUserProfile(row));
+        }
+
+        return new PageResult<>(list, total, safePage, safeSize);
+    }
+
+    public boolean updateUserStatus(Long userId, Short status) {
+        if (userId == null) {
+            throw new IllegalArgumentException("User id is required.");
+        }
+        if (status == null) {
+            throw new IllegalArgumentException("Status is required.");
+        }
+
+        return loginMapper.updateUserStatus(userId, status) > 0;
     }
 
     /**
@@ -207,5 +285,59 @@ public class UserService {
         } catch (RestClientException ex) {
             return null;
         }
+    }
+
+    private AuthResult buildAuthResult(User user) {
+        UserProfile userProfile = toUserProfile(user, loadRoles(user.getUserId()));
+        String token = jwtTokenService.generateToken(userProfile);
+        return new AuthResult(jwtTokenService.tokenType(), token, userProfile);
+    }
+
+    private UserProfile toUserProfile(User user, List<String> roles) {
+        UserProfile userProfile = new UserProfile();
+        userProfile.setUserId(user.getUserId());
+        userProfile.setUsername(user.getUsername());
+        userProfile.setEmail(user.getEmail());
+        userProfile.setPhone(user.getPhone());
+        userProfile.setAvatarUrl(user.getAvatarUrl());
+        userProfile.setStatus(user.getStatus());
+        userProfile.setLoginType(user.getLoginType());
+        userProfile.setLastLoginTime(user.getLastLoginTime());
+        userProfile.setRoles(roles);
+        return userProfile;
+    }
+
+    private UserProfile toUserProfile(UserPageRow row) {
+        UserProfile userProfile = new UserProfile();
+        userProfile.setUserId(row.getUserId());
+        userProfile.setUsername(row.getUsername());
+        userProfile.setEmail(row.getEmail());
+        userProfile.setPhone(row.getPhone());
+        userProfile.setAvatarUrl(row.getAvatarUrl());
+        userProfile.setStatus(row.getStatus());
+        userProfile.setLoginType(row.getLoginType());
+        userProfile.setLastLoginTime(row.getLastLoginTime());
+        userProfile.setRoles(splitRoles(row.getRoleNames()));
+        return userProfile;
+    }
+
+    private List<String> loadRoles(Long userId) {
+        List<String> roles = loginMapper.findRoleNamesByUserId(userId);
+        return roles == null ? List.of() : List.copyOf(roles);
+    }
+
+    private List<String> splitRoles(String roleNames) {
+        if (!StringUtils.hasText(roleNames)) {
+            return List.of();
+        }
+
+        String[] parts = roleNames.split(",");
+        List<String> roles = new ArrayList<>();
+        for (String part : parts) {
+            if (StringUtils.hasText(part)) {
+                roles.add(part.trim());
+            }
+        }
+        return roles;
     }
 }

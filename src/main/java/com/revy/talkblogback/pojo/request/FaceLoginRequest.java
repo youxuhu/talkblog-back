@@ -22,4 +22,8 @@ public class FaceLoginRequest {
      * 人脸图片 base64 字符串。
      */
     private String image;
+
+    /**
+     * 
+     */
 }

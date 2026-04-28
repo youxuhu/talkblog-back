@@ -14,7 +14,7 @@ app.config['MAX_CONTENT_LENGTH'] = 8 * 1024 * 1024
 # 将在./models/目录下加载模型文件
 available_providers = ort.get_available_providers()
 providers = ['CPUExecutionProvider']
-face_app = FaceAnalysis(name='buffalo_l', root='./models/', providers=providers)
+face_app = FaceAnalysis(name='buffalo_l', root='./face_vector_service/models', providers=providers)
 
 # 强制使用 CPU，ctx_id 需为 -1
 face_app.prepare(ctx_id=-1, det_size=(640, 640))

@@ -1,6 +1,7 @@
 package com.revy.talkblogback.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.revy.talkblogback.auth.JwtTokenService;
 import com.revy.talkblogback.pojo.request.FaceLoginRequest;
 import com.revy.talkblogback.pojo.request.RegisterRequest;
 import com.revy.talkblogback.service.UserService;
@@ -36,6 +37,9 @@ class LoginControllerTest {
     @MockitoBean
     private UserService userService;
 
+    @MockitoBean
+    private JwtTokenService jwtTokenService;
+
     /**
      * 注册成功接口测试。
      */
@@ -57,7 +61,7 @@ class LoginControllerTest {
     @Test
     void login_shouldReturnFailureResponse_whenServiceReturnsFalse() throws Exception {
         FaceLoginRequest request = new FaceLoginRequest("demo@test.com", "base64-image");
-        when(userService.login("demo@test.com", "base64-image")).thenReturn(false);
+        when(userService.loginByFace("demo@test.com", "base64-image")).thenReturn(null);
 
         mockMvc.perform(post("/api/auth/login")
                 .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))

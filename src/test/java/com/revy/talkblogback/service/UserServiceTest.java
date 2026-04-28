@@ -1,5 +1,8 @@
 package com.revy.talkblogback.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.revy.talkblogback.auth.AuthProperties;
+import com.revy.talkblogback.auth.JwtTokenService;
 import com.revy.talkblogback.config.FaceServiceProperties;
 import com.revy.talkblogback.mapper.FaceVectorMapper;
 import com.revy.talkblogback.mapper.LoginMapper;
@@ -38,6 +41,7 @@ class UserServiceTest {
     private RestTemplate restTemplate;
     private UserService userService;
     private FaceServiceProperties faceServiceProperties;
+    private JwtTokenService jwtTokenService;
 
     @BeforeEach
     void setUp() {
@@ -47,7 +51,8 @@ class UserServiceTest {
         faceServiceProperties = new FaceServiceProperties();
         faceServiceProperties.setUrl("http://localhost:5000");
         faceServiceProperties.setExtractEndpoint("/extract");
-        userService = new UserService(loginMapper, faceVectorMapper, restTemplate, faceServiceProperties);
+        jwtTokenService = new JwtTokenService(new ObjectMapper(), new AuthProperties());
+        userService = new UserService(loginMapper, faceVectorMapper, restTemplate, faceServiceProperties, jwtTokenService);
     }
 
     /**
