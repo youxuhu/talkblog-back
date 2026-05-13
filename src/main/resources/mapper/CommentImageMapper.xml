@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.revy.talkblogback.mapper.CommentImageMapper">
+
+    <insert id="insertCommentImage">
+        INSERT INTO comment_images (comment_id, image_url, image_order, created_at)
+        VALUES (#{commentId}, #{imageUrl}, #{imageOrder}, NOW())
+    </insert>
+
+    <insert id="insertCommentImages">
+        <foreach collection="images" item="imageUrl" index="index">
+            INSERT INTO comment_images (comment_id, image_url, image_order, created_at)
+            VALUES (#{commentId}, #{imageUrl}, #{index}, NOW())
+        </foreach>
+    </insert>
+
+    <select id="findByCommentId" resultType="CommentImage">
+        SELECT image_id, comment_id, image_url, image_order, created_at
+        FROM comment_images
+        WHERE comment_id = #{commentId}
+        ORDER BY image_order ASC
+    </select>
+
+    <delete id="deleteByCommentId">
+        DELETE FROM comment_images
+        WHERE comment_id = #{commentId}
+    </delete>
+
+</mapper>
