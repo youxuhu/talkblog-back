@@ -22,4 +22,5 @@ public class CommentDetail {
     private Short status;
     private String replyToUsername;
     private List<CommentDetail> replies;
+    private List<String> images;
 }

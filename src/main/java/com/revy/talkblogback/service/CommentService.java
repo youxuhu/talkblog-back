@@ -2,8 +2,10 @@ package com.revy.talkblogback.service;
 
 import com.revy.talkblogback.auth.AuthContext;
 import com.revy.talkblogback.auth.AuthProperties;
+import com.revy.talkblogback.mapper.CommentImageMapper;
 import com.revy.talkblogback.mapper.CommentMapper;
 import com.revy.talkblogback.pojo.Comment;
+import com.revy.talkblogback.pojo.CommentImage;
 import com.revy.talkblogback.pojo.CommentLike;
 import com.revy.talkblogback.pojo.User;
 import com.revy.talkblogback.pojo.request.BatchReviewRequest;
@@ -12,6 +14,7 @@ import com.revy.talkblogback.pojo.response.*;
 import com.revy.talkblogback.mapper.LoginMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -21,14 +24,19 @@ public class CommentService {
 
     private final CommentMapper commentMapper;
     private final LoginMapper loginMapper;
+    private final CommentImageMapper commentImageMapper;
+    private final FileService fileService;
 
-    public CommentService(CommentMapper commentMapper, LoginMapper loginMapper) {
+    public CommentService(CommentMapper commentMapper, LoginMapper loginMapper,
+                         CommentImageMapper commentImageMapper, FileService fileService) {
         this.commentMapper = commentMapper;
         this.loginMapper = loginMapper;
+        this.commentImageMapper = commentImageMapper;
+        this.fileService = fileService;
     }
 
     @Transactional(rollbackFor = Exception.class)
-    public CommentDetail createComment(CreateCommentRequest request) {
+    public CommentDetail createComment(CreateCommentRequest request, List<MultipartFile> images) {
         User currentUser = getCurrentUser();
 
         if (request.getParentId() != null) {
@@ -51,7 +59,19 @@ public class CommentService {
 
         commentMapper.insertComment(comment);
 
+        if (images != null && !images.isEmpty()) {
+            List<String> imageUrls = fileService.uploadCommentImages(images);
+            if (!imageUrls.isEmpty()) {
+                commentImageMapper.insertCommentImages(comment.getCommentId(), imageUrls);
+            }
+        }
+
         return buildCommentDetail(comment);
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public CommentDetail createComment(CreateCommentRequest request) {
+        return createComment(request, null);
     }
 
     public PageResult<CommentDetail> getCommentsByBlogId(Long blogId, int page, int size, Long parentId, Short status) {
@@ -118,6 +138,7 @@ public class CommentService {
         for (CommentDetail reply : replies) {
             deleteCommentTree(reply.getCommentId());
         }
+        commentImageMapper.deleteByCommentId(commentId);
         commentMapper.deleteCommentAdmin(commentId);
     }
 
@@ -125,6 +146,9 @@ public class CommentService {
         User currentUser = getCurrentUser();
         int offset = (page - 1) * size;
         List<CommentRow> comments = commentMapper.findMyComments(currentUser.getUserId(), offset, size);
+        for (CommentRow comment : comments) {
+            comment.setImages(commentImageMapper.findImageUrlsByCommentId(comment.getCommentId()));
+        }
         long total = commentMapper.countMyComments(currentUser.getUserId());
         return new PageResult<>(comments, total, page, size);
     }
@@ -132,6 +156,9 @@ public class CommentService {
     public PageResult<CommentRow> getAdminComments(int page, int size, String keyword, Short status, String blogId) {
         int offset = (page - 1) * size;
         List<CommentRow> comments = commentMapper.findAdminComments(keyword, status, blogId, offset, size);
+        for (CommentRow comment : comments) {
+            comment.setImages(commentImageMapper.findImageUrlsByCommentId(comment.getCommentId()));
+        }
         long total = commentMapper.countAdminComments(keyword, status, blogId);
         return new PageResult<>(comments, total, page, size);
     }
@@ -200,6 +227,7 @@ public class CommentService {
         detail.setCreatedAt(comment.getCreatedAt());
         detail.setStatus(comment.getStatus());
         detail.setReplies(new ArrayList<>());
+        detail.setImages(commentImageMapper.findImageUrlsByCommentId(comment.getCommentId()));
 
         if (comment.getReplyToUserId() != null) {
             User replyToUser = loginMapper.findUserById(comment.getReplyToUserId());

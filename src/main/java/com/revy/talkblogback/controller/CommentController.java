@@ -8,9 +8,12 @@ import com.revy.talkblogback.pojo.response.CommentRow;
 import com.revy.talkblogback.pojo.response.PageResult;
 import com.revy.talkblogback.service.CommentService;
 import jakarta.validation.Valid;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -24,10 +27,21 @@ public class CommentController {
     }
 
     @RequireRoles({"USER", "ADMIN", "SUPER_ADMIN"})
-    @PostMapping
-    public ResponseEntity<ApiResponse<CommentDetail>> createComment(@Valid @RequestBody CreateCommentRequest request) {
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<CommentDetail>> createComment(
+            @RequestParam("blogId") Long blogId,
+            @RequestParam("content") String content,
+            @RequestParam(value = "parentId", required = false) Long parentId,
+            @RequestParam(value = "replyToUserId", required = false) Long replyToUserId,
+            @RequestParam(value = "images", required = false) List<MultipartFile> images) {
         try {
-            CommentDetail comment = commentService.createComment(request);
+            CreateCommentRequest request = new CreateCommentRequest();
+            request.setBlogId(blogId);
+            request.setContent(content);
+            request.setParentId(parentId);
+            request.setReplyToUserId(replyToUserId);
+
+            CommentDetail comment = commentService.createComment(request, images);
             return ResponseEntity.ok(ApiResponse.success("评论发表成功", comment));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(ApiResponse.failure(e.getMessage()));
@@ -40,8 +54,16 @@ public class CommentController {
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(required = false) Long parentId,
-            @RequestParam(required = false) Short status) {
-        PageResult<CommentDetail> result = commentService.getCommentsByBlogId(blogId, page, size, parentId, status);
+            @RequestParam(required = false) String status) {
+        Short statusValue = null;
+        if (status != null && !status.equals("NaN") && !status.isEmpty()) {
+            try {
+                statusValue = Short.parseShort(status);
+            } catch (NumberFormatException e) {
+                statusValue = null;
+            }
+        }
+        PageResult<CommentDetail> result = commentService.getCommentsByBlogId(blogId, page, size, parentId, statusValue);
         return ResponseEntity.ok(ApiResponse.success("获取评论成功", result));
     }
 

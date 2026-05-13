@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @AllArgsConstructor
@@ -22,4 +23,5 @@ public class CommentRow {
     private String ipAddress;
     private Short status;
     private LocalDateTime createdAt;
+    private List<String> images;
 }

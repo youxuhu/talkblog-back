@@ -26,3 +26,14 @@ CREATE TABLE IF NOT EXISTS comment_likes (
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     PRIMARY KEY (comment_id, user_id)
 );
+
+-- Comment images table
+CREATE TABLE IF NOT EXISTS comment_images (
+    image_id BIGSERIAL PRIMARY KEY,
+    comment_id BIGINT NOT NULL REFERENCES comments(comment_id) ON DELETE CASCADE,
+    image_url VARCHAR(500) NOT NULL,
+    image_order INTEGER NOT NULL DEFAULT 0,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_comment_images_comment_id ON comment_images(comment_id);

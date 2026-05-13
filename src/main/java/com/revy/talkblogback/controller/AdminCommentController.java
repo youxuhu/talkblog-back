@@ -28,9 +28,17 @@ public class AdminCommentController {
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) Short status,
+            @RequestParam(required = false) String status,
             @RequestParam(required = false) String blogId) {
-        PageResult<CommentRow> result = commentService.getAdminComments(page, size, keyword, status, blogId);
+        Short statusValue = null;
+        if (status != null && !status.equals("NaN") && !status.isEmpty()) {
+            try {
+                statusValue = Short.parseShort(status);
+            } catch (NumberFormatException e) {
+                statusValue = null;
+            }
+        }
+        PageResult<CommentRow> result = commentService.getAdminComments(page, size, keyword, statusValue, blogId);
         return ResponseEntity.ok(ApiResponse.success("获取成功", result));
     }
 
