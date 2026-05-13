@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.revy.talkblogback.mapper.BlogMapper">
+
+    <resultMap id="BlogResultMap" type="com.revy.talkblogback.pojo.Blog">
+        <id column="id" property="id"/>
+        <result column="title" property="title"/>
+        <result column="content" property="content"/>
+        <result column="author_id" property="authorId"/>
+        <result column="author_name" property="authorName"/>
+        <result column="author_avatar" property="authorAvatar"/>
+        <result column="status" property="status"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+    </resultMap>
+
+    <select id="findById" parameterType="Long" resultMap="BlogResultMap">
+        SELECT b.id, b.title, b.content, b.author_id,
+               u.username as author_name, u.avatar_url as author_avatar,
+               b.status, b.created_at, b.updated_at
+        FROM blogs b
+        LEFT JOIN users u ON b.author_id = u.user_id
+        WHERE b.id = #{id}
+        LIMIT 1
+    </select>
+
+    <select id="findList" resultMap="BlogResultMap">
+        SELECT b.id, b.title, b.content, b.author_id,
+               u.username as author_name, u.avatar_url as author_avatar,
+               b.status, b.created_at, b.updated_at
+        FROM blogs b
+        LEFT JOIN users u ON b.author_id = u.user_id
+        <where>
+            b.status = 1
+            <if test="keyword != null and keyword != ''">
+                AND b.title LIKE concat('%', #{keyword}, '%')
+            </if>
+        </where>
+        ORDER BY b.created_at DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="count" resultType="long">
+        SELECT COUNT(1)
+        FROM blogs b
+        <where>
+            b.status = 1
+            <if test="keyword != null and keyword != ''">
+                AND b.title LIKE concat('%', #{keyword}, '%')
+            </if>
+        </where>
+    </select>
+
+    <select id="findByAuthorId" resultMap="BlogResultMap">
+        SELECT b.id, b.title, b.content, b.author_id,
+               u.username as author_name, u.avatar_url as author_avatar,
+               b.status, b.created_at, b.updated_at
+        FROM blogs b
+        LEFT JOIN users u ON b.author_id = u.user_id
+        WHERE b.author_id = #{authorId}
+        ORDER BY b.created_at DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="countByAuthorId" resultType="long">
+        SELECT COUNT(1)
+        FROM blogs b
+        WHERE b.author_id = #{authorId}
+    </select>
+
+    <insert id="insert" parameterType="com.revy.talkblogback.pojo.Blog" useGeneratedKeys="true"
+            keyProperty="id" keyColumn="id">
+        INSERT INTO blogs (title, content, author_id, status, created_at, updated_at)
+        VALUES (#{title}, #{content}, #{authorId}, #{status}, NOW(), NOW())
+    </insert>
+
+    <update id="update" parameterType="com.revy.talkblogback.pojo.Blog">
+        UPDATE blogs
+        <set>
+            <if test="title != null">title = #{title},</if>
+            <if test="content != null">content = #{content},</if>
+            <if test="status != null">status = #{status},</if>
+            updated_at = NOW()
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById" parameterType="Long">
+        DELETE FROM blogs WHERE id = #{id}
+    </delete>
+
+</mapper>
