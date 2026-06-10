@@ -13,10 +13,12 @@ import org.springframework.lang.Nullable;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerInterceptor;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
+import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -36,6 +38,13 @@ public class WebMvcConfig implements WebMvcConfigurer {
     public void addInterceptors(@NonNull InterceptorRegistry registry) {
         registry.addInterceptor(new AuthInterceptor(jwtTokenService, objectMapper))
                 .addPathPatterns("/api/**");
+    }
+
+    @Override
+    public void addResourceHandlers(@NonNull ResourceHandlerRegistry registry) {
+        String uploadPath = Paths.get("./uploads").toAbsolutePath().normalize().toUri().toString();
+        registry.addResourceHandler("/uploads/**")
+                .addResourceLocations(uploadPath);
     }
 
     private static final class AuthInterceptor implements HandlerInterceptor {
@@ -59,30 +68,28 @@ public class WebMvcConfig implements WebMvcConfigurer {
                 requireRoles = handlerMethod.getBeanType().getAnnotation(RequireRoles.class);
             }
 
-            if (requireRoles == null) {
-                return true;
-            }
-
             String authorization = request.getHeader("Authorization");
-            if (authorization == null || !authorization.startsWith("Bearer ")) {
-                writeError(response, 401, "Missing authorization token");
-                return false;
+            UserProfile userProfile = null;
+            if (authorization != null && authorization.startsWith("Bearer ")) {
+                String token = authorization.substring(7).trim();
+                userProfile = jwtTokenService.parseToken(token);
             }
 
-            String token = authorization.substring(7).trim();
-            UserProfile userProfile = jwtTokenService.parseToken(token);
-            if (userProfile == null) {
-                writeError(response, 401, "Invalid or expired token");
-                return false;
+            if (requireRoles != null) {
+                if (userProfile == null) {
+                    writeError(response, 401, "Missing authorization token");
+                    return false;
+                }
+                if (!hasRequiredRole(userProfile, requireRoles.value())) {
+                    writeError(response, 403, "Access denied");
+                    return false;
+                }
             }
 
-            if (!hasRequiredRole(userProfile, requireRoles.value())) {
-                writeError(response, 403, "Access denied");
-                return false;
+            if (userProfile != null) {
+                AuthContext.set(userProfile);
+                request.setAttribute("currentUser", userProfile);
             }
-
-            AuthContext.set(userProfile);
-            request.setAttribute("currentUser", userProfile);
             return true;
         }
 

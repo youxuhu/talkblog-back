@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.revy.talkblogback.mapper.GroupJoinRequestMapper">
+
+    <resultMap id="GroupJoinRequestResultMap" type="com.revy.talkblogback.pojo.GroupJoinRequest">
+        <id column="id" property="id"/>
+        <result column="group_id" property="groupId"/>
+        <result column="user_id" property="userId"/>
+        <result column="status" property="status"/>
+        <result column="reason" property="reason"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+    </resultMap>
+
+    <resultMap id="GroupJoinRequestResponseResultMap" type="com.revy.talkblogback.pojo.response.GroupJoinRequestResponse">
+        <id column="id" property="id"/>
+        <result column="group_id" property="groupId"/>
+        <result column="user_id" property="userId"/>
+        <result column="username" property="username"/>
+        <result column="status" property="status"/>
+        <result column="reason" property="reason"/>
+        <result column="created_at" property="createdAt"/>
+    </resultMap>
+
+    <insert id="insertRequest" parameterType="com.revy.talkblogback.pojo.GroupJoinRequest" useGeneratedKeys="true"
+            keyProperty="id" keyColumn="id">
+        INSERT INTO group_join_requests (group_id, user_id, status, reason, created_at, updated_at)
+        VALUES (#{groupId}, #{userId}, #{status}, #{reason}, NOW(), NOW())
+    </insert>
+
+    <select id="findRequestById" parameterType="Long" resultMap="GroupJoinRequestResultMap">
+        SELECT id, group_id, user_id, status, reason, created_at, updated_at
+        FROM group_join_requests
+        WHERE id = #{id}
+        LIMIT 1
+    </select>
+
+    <select id="findPendingRequest" resultMap="GroupJoinRequestResultMap">
+        SELECT id, group_id, user_id, status, reason, created_at, updated_at
+        FROM group_join_requests
+        WHERE group_id = #{groupId} AND user_id = #{userId} AND status = 0
+        LIMIT 1
+    </select>
+
+    <select id="findRequestsByGroupId" resultMap="GroupJoinRequestResponseResultMap">
+        SELECT gjr.id, gjr.group_id, gjr.user_id, u.username, gjr.status, gjr.reason, gjr.created_at
+        FROM group_join_requests gjr
+        JOIN users u ON gjr.user_id = u.user_id
+        WHERE gjr.group_id = #{groupId}
+        ORDER BY gjr.created_at DESC
+    </select>
+
+    <select id="findRequestsByUserId" resultMap="GroupJoinRequestResponseResultMap">
+        SELECT gjr.id, gjr.group_id, gjr.user_id, u.username, gjr.status, gjr.reason, gjr.created_at
+        FROM group_join_requests gjr
+        JOIN users u ON gjr.user_id = u.user_id
+        WHERE gjr.user_id = #{userId}
+        ORDER BY gjr.created_at DESC
+    </select>
+
+    <update id="updateRequestStatus">
+        UPDATE group_join_requests
+        SET status = #{status}, updated_at = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <select id="findByGroupIdAndUserId" resultMap="GroupJoinRequestResultMap">
+        SELECT id, group_id, user_id, status, reason, created_at, updated_at
+        FROM group_join_requests
+        WHERE group_id = #{groupId} AND user_id = #{userId}
+        ORDER BY created_at DESC
+        LIMIT 1
+    </select>
+
+    <update id="updateRequest">
+        UPDATE group_join_requests
+        SET status = #{status}, reason = #{reason}, updated_at = NOW()
+        WHERE id = #{id}
+    </update>
+
+</mapper>
