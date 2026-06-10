@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @NoArgsConstructor
@@ -16,6 +17,13 @@ public class Blog {
     private String authorName;
     private String authorAvatar;
     private Short status;
+    private Integer likeCount;
+    private Boolean liked;
+    private Boolean favorited;
+    private Long categoryId;
+    private String categoryName;
+    private List<Tag> tags;
+    private Integer viewCount;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 

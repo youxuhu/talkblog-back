@@ -21,8 +21,16 @@ public class FileService {
     @Value("${file.comment-images-dir:comment-images}")
     private String commentImagesDir;
 
+    @Value("${file.blog-images-dir:blog-images}")
+    private String blogImagesDir;
+
     private static final long MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
     private static final List<String> ALLOWED_TYPES = List.of("image/jpeg", "image/png", "image/gif", "image/webp");
+
+    private Path resolveUploadPath(String subDir) {
+        Path base = Paths.get(System.getProperty("user.dir"), uploadDir);
+        return base.resolve(subDir);
+    }
 
     public List<String> uploadCommentImages(List<MultipartFile> files) {
         if (files == null || files.isEmpty()) {
@@ -30,7 +38,7 @@ public class FileService {
         }
 
         List<String> imageUrls = new ArrayList<>();
-        Path uploadPath = Paths.get(uploadDir, commentImagesDir);
+        Path uploadPath = resolveUploadPath(commentImagesDir);
 
         try {
             Files.createDirectories(uploadPath);
@@ -57,6 +65,50 @@ public class FileService {
         }
 
         return imageUrls;
+    }
+
+    public String uploadBlogImage(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("文件不能为空");
+        }
+
+        validateFile(file);
+        Path uploadPath = resolveUploadPath(blogImagesDir);
+        try {
+            Files.createDirectories(uploadPath);
+        } catch (IOException e) {
+            throw new IllegalArgumentException("无法创建上传目录");
+        }
+
+        String fileName = generateFileName(file.getOriginalFilename());
+        Path filePath = uploadPath.resolve(fileName);
+        try {
+            file.transferTo(filePath.toFile());
+            return "/" + uploadDir + "/" + blogImagesDir + "/" + fileName;
+        } catch (IOException e) {
+            throw new IllegalArgumentException("文件上传失败: " + e.getClass().getSimpleName() + " - " + e.getMessage() + " (path: " + filePath.toAbsolutePath() + ")");
+        }
+    }
+
+    public void deleteBlogImage(String imageUrl) {
+        if (imageUrl == null || imageUrl.isBlank()) {
+            throw new IllegalArgumentException("图片地址不能为空");
+        }
+
+        String relativePath = imageUrl.startsWith("/") ? imageUrl.substring(1) : imageUrl;
+        Path base = Paths.get(System.getProperty("user.dir"));
+        Path filePath = base.resolve(relativePath).normalize();
+
+        Path uploadPath = resolveUploadPath(blogImagesDir).normalize();
+        if (!filePath.startsWith(uploadPath)) {
+            throw new IllegalArgumentException("不允许删除该路径下的文件");
+        }
+
+        try {
+            Files.deleteIfExists(filePath);
+        } catch (IOException e) {
+            throw new IllegalArgumentException("删除图片失败: " + e.getMessage());
+        }
     }
 
     private void validateFile(MultipartFile file) {

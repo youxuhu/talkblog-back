@@ -1,0 +1,11 @@
+fastapi
+pydantic
+python-dotenv
+PyYAML
+uvicorn
+fastapi
+uvicorn
+pydantic
+openai
+PyYAML
+python-dotenv

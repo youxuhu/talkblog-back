@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.revy.talkblogback.mapper.TagMapper">
+
+    <resultMap id="TagResultMap" type="com.revy.talkblogback.pojo.Tag">
+        <id column="id" property="id"/>
+        <result column="name" property="name"/>
+        <result column="slug" property="slug"/>
+        <result column="created_at" property="createdAt"/>
+    </resultMap>
+
+    <select id="findAll" resultMap="TagResultMap">
+        SELECT * FROM tags ORDER BY id ASC
+    </select>
+
+    <select id="searchByName" resultMap="TagResultMap">
+        SELECT * FROM tags WHERE name LIKE concat('%', #{keyword}, '%') ORDER BY id ASC LIMIT 20
+    </select>
+
+    <select id="findById" parameterType="Long" resultMap="TagResultMap">
+        SELECT * FROM tags WHERE id = #{id} LIMIT 1
+    </select>
+
+    <select id="findByName" parameterType="String" resultMap="TagResultMap">
+        SELECT * FROM tags WHERE name = #{name} LIMIT 1
+    </select>
+
+    <select id="findByBlogId" parameterType="Long" resultMap="TagResultMap">
+        SELECT t.* FROM tags t
+        INNER JOIN blog_tags bt ON t.id = bt.tag_id
+        WHERE bt.blog_id = #{blogId}
+        ORDER BY t.id ASC
+    </select>
+
+    <insert id="insert" parameterType="com.revy.talkblogback.pojo.Tag" useGeneratedKeys="true"
+            keyProperty="id" keyColumn="id">
+        INSERT INTO tags (name, slug, created_at)
+        VALUES (#{name}, #{slug}, NOW())
+    </insert>
+
+    <delete id="deleteById" parameterType="Long">
+        DELETE FROM tags WHERE id = #{id}
+    </delete>
+
+    <insert id="insertBlogTag">
+        INSERT INTO blog_tags (blog_id, tag_id)
+        VALUES (#{blogId}, #{tagId})
+        ON CONFLICT DO NOTHING
+    </insert>
+
+    <delete id="deleteBlogTags" parameterType="Long">
+        DELETE FROM blog_tags WHERE blog_id = #{blogId}
+    </delete>
+
+</mapper>

@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.revy.talkblogback.mapper.CategoryMapper">
+
+    <resultMap id="CategoryResultMap" type="com.revy.talkblogback.pojo.Category">
+        <id column="id" property="id"/>
+        <result column="name" property="name"/>
+        <result column="slug" property="slug"/>
+        <result column="description" property="description"/>
+        <result column="parent_id" property="parentId"/>
+        <result column="sort_order" property="sortOrder"/>
+        <result column="created_at" property="createdAt"/>
+    </resultMap>
+
+    <select id="findAll" resultMap="CategoryResultMap">
+        SELECT * FROM categories ORDER BY sort_order ASC, id ASC
+    </select>
+
+    <select id="findById" parameterType="Long" resultMap="CategoryResultMap">
+        SELECT * FROM categories WHERE id = #{id} LIMIT 1
+    </select>
+
+    <select id="findBySlug" parameterType="String" resultMap="CategoryResultMap">
+        SELECT * FROM categories WHERE slug = #{slug} LIMIT 1
+    </select>
+
+    <insert id="insert" parameterType="com.revy.talkblogback.pojo.Category" useGeneratedKeys="true"
+            keyProperty="id" keyColumn="id">
+        INSERT INTO categories (name, slug, description, parent_id, sort_order, created_at)
+        VALUES (#{name}, #{slug}, #{description}, #{parentId}, #{sortOrder}, NOW())
+    </insert>
+
+    <update id="update" parameterType="com.revy.talkblogback.pojo.Category">
+        UPDATE categories
+        <set>
+            <if test="name != null">name = #{name},</if>
+            <if test="slug != null">slug = #{slug},</if>
+            <if test="description != null">description = #{description},</if>
+            <if test="parentId != null">parent_id = #{parentId},</if>
+            <if test="sortOrder != null">sort_order = #{sortOrder},</if>
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById" parameterType="Long">
+        DELETE FROM categories WHERE id = #{id}
+    </delete>
+
+</mapper>

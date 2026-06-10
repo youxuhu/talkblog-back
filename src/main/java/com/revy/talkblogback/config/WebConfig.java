@@ -14,10 +14,17 @@ public class WebConfig implements WebMvcConfigurer {
     @Value("${file.comment-images-dir:comment-images}")
     private String commentImagesDir;
 
+    @Value("${file.blog-images-dir:blog-images}")
+    private String blogImagesDir;
+
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
         String commentImagesPath = "file:" + uploadDir + "/" + commentImagesDir + "/";
         registry.addResourceHandler("/" + uploadDir + "/" + commentImagesDir + "/**")
                 .addResourceLocations(commentImagesPath);
+
+        String blogImagesPath = "file:" + uploadDir + "/" + blogImagesDir + "/";
+        registry.addResourceHandler("/" + uploadDir + "/" + blogImagesDir + "/**")
+                .addResourceLocations(blogImagesPath);
     }
 }

@@ -59,30 +59,24 @@ public class WebMvcConfig implements WebMvcConfigurer {
                 requireRoles = handlerMethod.getBeanType().getAnnotation(RequireRoles.class);
             }
 
-            if (requireRoles == null) {
-                return true;
+            // Try to parse token for all requests (optional for public endpoints)
+            UserProfile userProfile = tryParseToken(request);
+
+            if (requireRoles != null) {
+                if (userProfile == null) {
+                    writeError(response, 401, "Missing authorization token");
+                    return false;
+                }
+                if (!hasRequiredRole(userProfile, requireRoles.value())) {
+                    writeError(response, 403, "Access denied");
+                    return false;
+                }
             }
 
-            String authorization = request.getHeader("Authorization");
-            if (authorization == null || !authorization.startsWith("Bearer ")) {
-                writeError(response, 401, "Missing authorization token");
-                return false;
+            if (userProfile != null) {
+                AuthContext.set(userProfile);
+                request.setAttribute("currentUser", userProfile);
             }
-
-            String token = authorization.substring(7).trim();
-            UserProfile userProfile = jwtTokenService.parseToken(token);
-            if (userProfile == null) {
-                writeError(response, 401, "Invalid or expired token");
-                return false;
-            }
-
-            if (!hasRequiredRole(userProfile, requireRoles.value())) {
-                writeError(response, 403, "Access denied");
-                return false;
-            }
-
-            AuthContext.set(userProfile);
-            request.setAttribute("currentUser", userProfile);
             return true;
         }
 
@@ -103,6 +97,23 @@ public class WebMvcConfig implements WebMvcConfigurer {
 
             return Arrays.stream(requiredRoles)
                     .anyMatch(required -> userProfile.getRoles().stream().anyMatch(role -> role.equalsIgnoreCase(required)));
+        }
+
+        @Nullable
+        private UserProfile tryParseToken(HttpServletRequest request) {
+            String authorization = request.getHeader("Authorization");
+            if (authorization == null || !authorization.startsWith("Bearer ")) {
+                return null;
+            }
+            String token = authorization.substring(7).trim();
+            if (token.isEmpty()) {
+                return null;
+            }
+            try {
+                return jwtTokenService.parseToken(token);
+            } catch (Exception e) {
+                return null;
+            }
         }
 
         private void writeError(HttpServletResponse response, int status, String message) throws IOException {

@@ -97,3 +97,4 @@ mybatis:
 file:
   upload-dir: uploads
   comment-images-dir: comment-images
+  blog-images-dir: blog-images

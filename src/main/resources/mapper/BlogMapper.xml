@@ -10,6 +10,10 @@
         <result column="author_name" property="authorName"/>
         <result column="author_avatar" property="authorAvatar"/>
         <result column="status" property="status"/>
+        <result column="like_count" property="likeCount"/>
+        <result column="view_count" property="viewCount"/>
+        <result column="category_id" property="categoryId"/>
+        <result column="category_name" property="categoryName"/>
         <result column="created_at" property="createdAt"/>
         <result column="updated_at" property="updatedAt"/>
     </resultMap>
@@ -17,9 +21,11 @@
     <select id="findById" parameterType="Long" resultMap="BlogResultMap">
         SELECT b.id, b.title, b.content, b.author_id,
                u.username as author_name, u.avatar_url as author_avatar,
-               b.status, b.created_at, b.updated_at
+               b.status, b.like_count, b.view_count, b.category_id,
+               c.name as category_name, b.created_at, b.updated_at
         FROM blogs b
         LEFT JOIN users u ON b.author_id = u.user_id
+        LEFT JOIN categories c ON b.category_id = c.id
         WHERE b.id = #{id}
         LIMIT 1
     </select>
@@ -27,16 +33,25 @@
     <select id="findList" resultMap="BlogResultMap">
         SELECT b.id, b.title, b.content, b.author_id,
                u.username as author_name, u.avatar_url as author_avatar,
-               b.status, b.created_at, b.updated_at
+               b.status, b.like_count, b.view_count, b.category_id,
+               c.name as category_name, b.created_at, b.updated_at
         FROM blogs b
         LEFT JOIN users u ON b.author_id = u.user_id
+        LEFT JOIN categories c ON b.category_id = c.id
         <where>
             b.status = 1
             <if test="keyword != null and keyword != ''">
                 AND b.title LIKE concat('%', #{keyword}, '%')
             </if>
+            <if test="categoryId != null">
+                AND b.category_id = #{categoryId}
+            </if>
         </where>
-        ORDER BY b.created_at DESC
+        <choose>
+            <when test="sortBy == 'views'">ORDER BY b.view_count DESC, b.created_at DESC</when>
+            <when test="sortBy == 'likes'">ORDER BY b.like_count DESC, b.created_at DESC</when>
+            <otherwise>ORDER BY b.created_at DESC</otherwise>
+        </choose>
         LIMIT #{limit} OFFSET #{offset}
     </select>
 
@@ -48,15 +63,20 @@
             <if test="keyword != null and keyword != ''">
                 AND b.title LIKE concat('%', #{keyword}, '%')
             </if>
+            <if test="categoryId != null">
+                AND b.category_id = #{categoryId}
+            </if>
         </where>
     </select>
 
     <select id="findByAuthorId" resultMap="BlogResultMap">
         SELECT b.id, b.title, b.content, b.author_id,
                u.username as author_name, u.avatar_url as author_avatar,
-               b.status, b.created_at, b.updated_at
+               b.status, b.like_count, b.view_count, b.category_id,
+               c.name as category_name, b.created_at, b.updated_at
         FROM blogs b
         LEFT JOIN users u ON b.author_id = u.user_id
+        LEFT JOIN categories c ON b.category_id = c.id
         WHERE b.author_id = #{authorId}
         ORDER BY b.created_at DESC
         LIMIT #{limit} OFFSET #{offset}
@@ -70,8 +90,8 @@
 
     <insert id="insert" parameterType="com.revy.talkblogback.pojo.Blog" useGeneratedKeys="true"
             keyProperty="id" keyColumn="id">
-        INSERT INTO blogs (title, content, author_id, status, created_at, updated_at)
-        VALUES (#{title}, #{content}, #{authorId}, #{status}, NOW(), NOW())
+        INSERT INTO blogs (title, content, author_id, status, category_id, created_at, updated_at)
+        VALUES (#{title}, #{content}, #{authorId}, #{status}, #{categoryId}, NOW(), NOW())
     </insert>
 
     <update id="update" parameterType="com.revy.talkblogback.pojo.Blog">
@@ -80,6 +100,7 @@
             <if test="title != null">title = #{title},</if>
             <if test="content != null">content = #{content},</if>
             <if test="status != null">status = #{status},</if>
+            <if test="categoryId != null">category_id = #{categoryId},</if>
             updated_at = NOW()
         </set>
         WHERE id = #{id}
@@ -88,5 +109,148 @@
     <delete id="deleteById" parameterType="Long">
         DELETE FROM blogs WHERE id = #{id}
     </delete>
+
+    <!-- likes -->
+
+    <update id="incrementLikeCount">
+        UPDATE blogs SET like_count = like_count + 1 WHERE id = #{blogId}
+    </update>
+
+    <update id="decrementLikeCount">
+        UPDATE blogs SET like_count = GREATEST(like_count - 1, 0) WHERE id = #{blogId}
+    </update>
+
+    <select id="findBlogLike" resultType="com.revy.talkblogback.pojo.BlogLike">
+        SELECT blog_id as blogId, user_id as userId, created_at as createdAt
+        FROM blog_likes
+        WHERE blog_id = #{blogId} AND user_id = #{userId}
+        LIMIT 1
+    </select>
+
+    <insert id="insertBlogLike" parameterType="com.revy.talkblogback.pojo.BlogLike">
+        INSERT INTO blog_likes (blog_id, user_id, created_at)
+        VALUES (#{blogId}, #{userId}, NOW())
+    </insert>
+
+    <delete id="deleteBlogLike">
+        DELETE FROM blog_likes WHERE blog_id = #{blogId} AND user_id = #{userId}
+    </delete>
+
+    <!-- favorites -->
+
+    <select id="findFavorite" resultType="com.revy.talkblogback.pojo.UserFavorite">
+        SELECT id, user_id as userId, blog_id as blogId, created_at as createdAt
+        FROM user_favorites
+        WHERE user_id = #{userId} AND blog_id = #{blogId}
+        LIMIT 1
+    </select>
+
+    <insert id="insertFavorite" parameterType="com.revy.talkblogback.pojo.UserFavorite"
+            useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        INSERT INTO user_favorites (user_id, blog_id, created_at)
+        VALUES (#{userId}, #{blogId}, NOW())
+    </insert>
+
+    <delete id="deleteFavorite">
+        DELETE FROM user_favorites WHERE user_id = #{userId} AND blog_id = #{blogId}
+    </delete>
+
+    <select id="findByTagId" resultMap="BlogResultMap">
+        SELECT b.id, b.title, b.content, b.author_id,
+               u.username as author_name, u.avatar_url as author_avatar,
+               b.status, b.like_count, b.view_count, b.category_id,
+               c.name as category_name, b.created_at, b.updated_at
+        FROM blogs b
+        LEFT JOIN users u ON b.author_id = u.user_id
+        LEFT JOIN categories c ON b.category_id = c.id
+        INNER JOIN blog_tags bt ON b.id = bt.blog_id
+        WHERE b.status = 1 AND bt.tag_id = #{tagId}
+        ORDER BY b.created_at DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="countByTagId" resultType="long">
+        SELECT COUNT(1)
+        FROM blogs b
+        INNER JOIN blog_tags bt ON b.id = bt.blog_id
+        WHERE b.status = 1 AND bt.tag_id = #{tagId}
+    </select>
+
+    <select id="findFavoriteBlogs" resultMap="BlogResultMap">
+        SELECT b.id, b.title, b.content, b.author_id,
+               u.username as author_name, u.avatar_url as author_avatar,
+               b.status, b.like_count, b.view_count, b.category_id,
+               c.name as category_name, b.created_at, b.updated_at
+        FROM blogs b
+        LEFT JOIN users u ON b.author_id = u.user_id
+        LEFT JOIN categories c ON b.category_id = c.id
+        INNER JOIN user_favorites uf ON b.id = uf.blog_id
+        WHERE uf.user_id = #{userId}
+        ORDER BY uf.created_at DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="countFavoriteBlogs" resultType="long">
+        SELECT COUNT(1)
+        FROM user_favorites
+        WHERE user_id = #{userId}
+    </select>
+
+    <!-- views -->
+
+    <update id="incrementViewCount">
+        UPDATE blogs SET view_count = view_count + 1 WHERE id = #{blogId}
+    </update>
+
+    <insert id="insertBlogView">
+        INSERT INTO blog_views (blog_id, ip_address, user_id, viewed_at)
+        VALUES (#{blogId}, #{ipAddress}, #{userId}, NOW())
+    </insert>
+
+    <select id="findBlogViewToday" resultType="int">
+        SELECT COUNT(1) FROM blog_views
+        WHERE blog_id = #{blogId}
+          AND ip_address = #{ipAddress}
+          AND viewed_at >= CURRENT_DATE
+    </select>
+
+    <select id="findBlogViewTodayByUser" resultType="int">
+        SELECT COUNT(1) FROM blog_views
+        WHERE blog_id = #{blogId}
+          AND user_id = #{userId}
+          AND viewed_at >= CURRENT_DATE
+    </select>
+
+    <!-- ranking -->
+
+    <select id="findPopular" resultMap="BlogResultMap">
+        SELECT b.id, b.title, b.content, b.author_id,
+               u.username as author_name, u.avatar_url as author_avatar,
+               b.status, b.like_count, b.view_count, b.category_id,
+               c.name as category_name, b.created_at, b.updated_at
+        FROM blogs b
+        LEFT JOIN users u ON b.author_id = u.user_id
+        LEFT JOIN categories c ON b.category_id = c.id
+        WHERE b.status = 1
+        ORDER BY b.view_count DESC, b.like_count DESC
+        LIMIT #{limit}
+    </select>
+
+    <select id="findTrending" resultMap="BlogResultMap">
+        SELECT b.id, b.title, b.content, b.author_id,
+               u.username as author_name, u.avatar_url as author_avatar,
+               b.status, b.like_count, b.view_count, b.category_id,
+               c.name as category_name, b.created_at, b.updated_at,
+               COUNT(bv.id) as period_views
+        FROM blogs b
+        LEFT JOIN users u ON b.author_id = u.user_id
+        LEFT JOIN categories c ON b.category_id = c.id
+        INNER JOIN blog_views bv ON b.id = bv.blog_id
+        WHERE b.status = 1
+          AND bv.viewed_at >= NOW() - (#{days} || ' days')::INTERVAL
+        GROUP BY b.id, u.username, u.avatar_url, c.name
+        ORDER BY period_views DESC
+        LIMIT #{limit}
+    </select>
 
 </mapper>

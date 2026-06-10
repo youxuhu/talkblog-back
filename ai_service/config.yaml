@@ -1,0 +1,14 @@
+openai:
+  model: "glm-4.7-flash"
+  base_url: "https://open.bigmodel.cn/api/paas/v4"
+  api_key: "cf69a4c284dd474f829d6798dcde3278.4AyvfLMxPVM6wIKb"  # 在这里填入你的 GLM API Key
+  timeout: 60
+  max_retries: 3
+
+inline:
+  temperature: 0.7
+  max_tokens: 500
+
+ask:
+  temperature: 0.9
+  max_tokens: 8000
