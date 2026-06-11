@@ -54,6 +54,14 @@
         LIMIT 1
     </select>
 
+    <select id="findUserByUsername" parameterType="String" resultMap="UserResultMap">
+        SELECT user_id, username, email, phone, password_hash, face_vector_id, login_type, avatar_url,
+               status, created_at, updated_at, last_login_time
+        FROM users
+        WHERE username = #{username}
+        LIMIT 1
+    </select>
+
     <insert id="insertUser" parameterType="com.revy.talkblogback.pojo.User" useGeneratedKeys="true"
             keyProperty="userId" keyColumn="user_id">
         INSERT INTO users (username, email, password_hash, status, login_type, created_at, updated_at)

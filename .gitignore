@@ -34,3 +34,9 @@ build/
 
 # Face vector model artifacts
 face_vector_service/models/
+
+# Logs
+logs/
+
+# System setup scripts
+Miniconda3-latest-Linux-x86_64.sh
