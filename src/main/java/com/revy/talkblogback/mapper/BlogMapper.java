@@ -2,6 +2,7 @@ package com.revy.talkblogback.mapper;
 
 import com.revy.talkblogback.pojo.Blog;
 import com.revy.talkblogback.pojo.BlogLike;
+import com.revy.talkblogback.pojo.InteractionUser;
 import com.revy.talkblogback.pojo.UserFavorite;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -82,4 +83,24 @@ public interface BlogMapper {
 
     int findBlogViewTodayByUser(@Param("blogId") Long blogId,
                                 @Param("userId") Long userId);
+
+    // --- interaction users ---
+
+    List<InteractionUser> findUsersWhoLiked(@Param("blogId") Long blogId,
+                                            @Param("offset") int offset,
+                                            @Param("limit") int limit);
+
+    int countUsersWhoLiked(@Param("blogId") Long blogId);
+
+    List<InteractionUser> findUsersWhoFavorited(@Param("blogId") Long blogId,
+                                                 @Param("offset") int offset,
+                                                 @Param("limit") int limit);
+
+    int countUsersWhoFavorited(@Param("blogId") Long blogId);
+
+    List<InteractionUser> findUsersWhoViewed(@Param("blogId") Long blogId,
+                                              @Param("offset") int offset,
+                                              @Param("limit") int limit);
+
+    int countUsersWhoViewed(@Param("blogId") Long blogId);
 }

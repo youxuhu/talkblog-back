@@ -1,3 +1,4 @@
+#!/home/lenovo/miniconda3/bin/python3
 import uvicorn
 import logging
 

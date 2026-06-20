@@ -253,4 +253,45 @@
         LIMIT #{limit}
     </select>
 
+    <!-- interaction users -->
+
+    <select id="findUsersWhoLiked" resultType="com.revy.talkblogback.pojo.InteractionUser">
+        SELECT u.user_id, u.username, u.avatar_url, bl.created_at as interacted_at
+        FROM blog_likes bl
+        JOIN users u ON bl.user_id = u.user_id
+        WHERE bl.blog_id = #{blogId}
+        ORDER BY bl.created_at DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="countUsersWhoLiked" resultType="int">
+        SELECT COUNT(1) FROM blog_likes WHERE blog_id = #{blogId}
+    </select>
+
+    <select id="findUsersWhoFavorited" resultType="com.revy.talkblogback.pojo.InteractionUser">
+        SELECT u.user_id, u.username, u.avatar_url, uf.created_at as interacted_at
+        FROM user_favorites uf
+        JOIN users u ON uf.user_id = u.user_id
+        WHERE uf.blog_id = #{blogId}
+        ORDER BY uf.created_at DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="countUsersWhoFavorited" resultType="int">
+        SELECT COUNT(1) FROM user_favorites WHERE blog_id = #{blogId}
+    </select>
+
+    <select id="findUsersWhoViewed" resultType="com.revy.talkblogback.pojo.InteractionUser">
+        SELECT u.user_id, u.username, u.avatar_url, bv.viewed_at as interacted_at
+        FROM blog_views bv
+        JOIN users u ON bv.user_id = u.user_id
+        WHERE bv.blog_id = #{blogId} AND bv.user_id IS NOT NULL
+        ORDER BY bv.viewed_at DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="countUsersWhoViewed" resultType="int">
+        SELECT COUNT(1) FROM blog_views WHERE blog_id = #{blogId} AND user_id IS NOT NULL
+    </select>
+
 </mapper>

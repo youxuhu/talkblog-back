@@ -1,3 +1,6 @@
+logs/
+__pycache__/
+**/mvn_repo/
 HELP.md
 target/
 .mvn/wrapper/maven-wrapper.jar

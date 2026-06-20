@@ -26,13 +26,16 @@ public class CommentService {
     private final LoginMapper loginMapper;
     private final CommentImageMapper commentImageMapper;
     private final FileService fileService;
+    private final RecommendationService recommendationService;
 
     public CommentService(CommentMapper commentMapper, LoginMapper loginMapper,
-                         CommentImageMapper commentImageMapper, FileService fileService) {
+                         CommentImageMapper commentImageMapper, FileService fileService,
+                         RecommendationService recommendationService) {
         this.commentMapper = commentMapper;
         this.loginMapper = loginMapper;
         this.commentImageMapper = commentImageMapper;
         this.fileService = fileService;
+        this.recommendationService = recommendationService;
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -65,6 +68,8 @@ public class CommentService {
                 commentImageMapper.insertCommentImages(comment.getCommentId(), imageUrls);
             }
         }
+
+        recommendationService.recordBehavior(comment.getBlogId(), "comment", 4.0);
 
         return buildCommentDetail(comment);
     }

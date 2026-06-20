@@ -5,6 +5,7 @@ import com.revy.talkblogback.mapper.BlogMapper;
 import com.revy.talkblogback.mapper.TagMapper;
 import com.revy.talkblogback.pojo.Blog;
 import com.revy.talkblogback.pojo.BlogLike;
+import com.revy.talkblogback.pojo.InteractionUser;
 import com.revy.talkblogback.pojo.Tag;
 import com.revy.talkblogback.pojo.UserFavorite;
 import com.revy.talkblogback.pojo.response.PageResult;
@@ -21,10 +22,12 @@ public class BlogService {
 
     private final BlogMapper blogMapper;
     private final TagMapper tagMapper;
+    private final RecommendationService recommendationService;
 
-    public BlogService(BlogMapper blogMapper, TagMapper tagMapper) {
+    public BlogService(BlogMapper blogMapper, TagMapper tagMapper, RecommendationService recommendationService) {
         this.blogMapper = blogMapper;
         this.tagMapper = tagMapper;
+        this.recommendationService = recommendationService;
     }
 
     public Blog getById(Long id) {
@@ -54,15 +57,21 @@ public class BlogService {
             if (profile != null) userId = profile.getUserId();
         } catch (Exception ignored) {}
 
+        boolean alreadyViewed = false;
         if (userId != null) {
             int todayViews = blogMapper.findBlogViewTodayByUser(blogId, userId);
-            if (todayViews > 0) return;
+            if (todayViews > 0) alreadyViewed = true;
         } else if (ipAddress != null) {
             int todayViews = blogMapper.findBlogViewToday(blogId, ipAddress);
-            if (todayViews > 0) return;
+            if (todayViews > 0) alreadyViewed = true;
         }
-        blogMapper.incrementViewCount(blogId);
-        blogMapper.insertBlogView(blogId, ipAddress, userId);
+        if (!alreadyViewed) {
+            blogMapper.incrementViewCount(blogId);
+            blogMapper.insertBlogView(blogId, ipAddress, userId);
+        }
+        if (userId != null) {
+            recommendationService.recordBehavior(blogId, "view", 1.0);
+        }
     }
 
     public PageResult<Blog> list(int page, int size, String keyword) {
@@ -223,6 +232,7 @@ public class BlogService {
             blogMapper.insertBlogLike(like);
             blogMapper.incrementLikeCount(blogId);
             int newCount = (blog.getLikeCount() == null ? 0 : blog.getLikeCount()) + 1;
+            recommendationService.recordBehavior(blogId, "like", 3.0);
             return Map.of("liked", true, "likeCount", newCount);
         }
     }
@@ -244,6 +254,7 @@ public class BlogService {
             fav.setUserId(currentUserId);
             fav.setBlogId(blogId);
             blogMapper.insertFavorite(fav);
+            recommendationService.recordBehavior(blogId, "favorite", 5.0);
             return Map.of("favorited", true);
         }
     }
@@ -268,6 +279,39 @@ public class BlogService {
 
     public List<Blog> getTrending(int days, int limit) {
         return blogMapper.findTrending(days, limit);
+    }
+
+    public List<InteractionUser> getUsersWhoLiked(Long blogId, int page, int size) {
+        int safePage = Math.max(page, 1);
+        int safeSize = Math.max(size, 1);
+        int offset = (safePage - 1) * safeSize;
+        return blogMapper.findUsersWhoLiked(blogId, offset, safeSize);
+    }
+
+    public int countUsersWhoLiked(Long blogId) {
+        return blogMapper.countUsersWhoLiked(blogId);
+    }
+
+    public List<InteractionUser> getUsersWhoFavorited(Long blogId, int page, int size) {
+        int safePage = Math.max(page, 1);
+        int safeSize = Math.max(size, 1);
+        int offset = (safePage - 1) * safeSize;
+        return blogMapper.findUsersWhoFavorited(blogId, offset, safeSize);
+    }
+
+    public int countUsersWhoFavorited(Long blogId) {
+        return blogMapper.countUsersWhoFavorited(blogId);
+    }
+
+    public List<InteractionUser> getUsersWhoViewed(Long blogId, int page, int size) {
+        int safePage = Math.max(page, 1);
+        int safeSize = Math.max(size, 1);
+        int offset = (safePage - 1) * safeSize;
+        return blogMapper.findUsersWhoViewed(blogId, offset, safeSize);
+    }
+
+    public int countUsersWhoViewed(Long blogId) {
+        return blogMapper.countUsersWhoViewed(blogId);
     }
 
     private Long getCurrentUserId() {

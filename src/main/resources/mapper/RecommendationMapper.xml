@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.revy.talkblogback.mapper.RecommendationMapper">
+
+    <resultMap id="BlogResultMap" type="com.revy.talkblogback.pojo.Blog">
+        <id column="id" property="id"/>
+        <result column="title" property="title"/>
+        <result column="content" property="content"/>
+        <result column="author_id" property="authorId"/>
+        <result column="author_name" property="authorName"/>
+        <result column="author_avatar" property="authorAvatar"/>
+        <result column="status" property="status"/>
+        <result column="like_count" property="likeCount"/>
+        <result column="view_count" property="viewCount"/>
+        <result column="category_id" property="categoryId"/>
+        <result column="category_name" property="categoryName"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+    </resultMap>
+
+    <!--
+        推荐评分公式：
+          tag_score    = 用户兴趣标签与博客标签的交集数量 * 3
+          cat_score    = 博客分类是否在用户偏好分类中 * 5
+          hot_score    = (view_count * 0.3 + like_count * 2) / 时间衰减
+          time_score   = 1 / (距今天数 + 1) * 2
+          final_score  = tag_score + cat_score + hot_score + time_score
+    -->
+    <select id="findCandidateBlogs" resultMap="BlogResultMap">
+        WITH user_tags AS (
+            SELECT tag_id FROM user_interest_tags WHERE user_id = #{userId}
+        ),
+        user_cats AS (
+            SELECT category_id FROM user_preferred_categories WHERE user_id = #{userId}
+        ),
+        excluded_blogs AS (
+            SELECT DISTINCT blog_id FROM user_behavior_log
+            WHERE user_id = #{userId}
+              AND behavior_type IN ('like', 'favorite', 'comment')
+        ),
+        recent_viewed AS (
+            SELECT DISTINCT blog_id FROM user_behavior_log
+            WHERE user_id = #{userId}
+              AND behavior_type = 'view'
+              AND created_at >= NOW() - INTERVAL '7 days'
+        )
+        SELECT b.id, b.title, LEFT(b.content, 200) as content,
+               b.author_id, u.username as author_name, u.avatar_url as author_avatar,
+               b.status, b.like_count, b.view_count, b.category_id,
+               c.name as category_name, b.created_at, b.updated_at,
+               COALESCE(tag_match.cnt, 0) * 3 AS tag_score,
+               CASE WHEN cat_match.cid IS NOT NULL THEN 5 ELSE 0 END AS cat_score
+        FROM blogs b
+        LEFT JOIN users u ON b.author_id = u.user_id
+        LEFT JOIN categories c ON b.category_id = c.id
+        LEFT JOIN (
+            SELECT bt.blog_id, COUNT(DISTINCT bt.tag_id) AS cnt
+            FROM blog_tags bt
+            INNER JOIN user_tags ut ON bt.tag_id = ut.tag_id
+            GROUP BY bt.blog_id
+        ) tag_match ON b.id = tag_match.blog_id
+        LEFT JOIN (
+            SELECT #{userId} AS uid, uc.category_id AS cid
+            FROM user_cats uc
+        ) cat_match ON b.category_id = cat_match.cid
+        WHERE b.status = 1
+          AND b.id NOT IN (SELECT blog_id FROM excluded_blogs)
+          AND b.id NOT IN (SELECT blog_id FROM recent_viewed)
+        ORDER BY
+            (COALESCE(tag_match.cnt, 0) * 3
+             + CASE WHEN cat_match.cid IS NOT NULL THEN 5 ELSE 0 END
+             + (COALESCE(b.view_count, 0) * 0.3 + COALESCE(b.like_count, 0) * 2)
+               / (EXTRACT(EPOCH FROM (NOW() - b.created_at)) / 86400 + 1)
+             + 2.0 / (EXTRACT(EPOCH FROM (NOW() - b.created_at)) / 86400 + 1)
+            ) DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="countCandidateBlogs" resultType="long">
+        SELECT COUNT(1) FROM (
+            SELECT b.id
+            FROM blogs b
+            WHERE b.status = 1
+              AND b.id NOT IN (
+                  SELECT DISTINCT blog_id FROM user_behavior_log
+                  WHERE user_id = #{userId}
+                    AND behavior_type IN ('like', 'favorite', 'comment')
+              )
+              AND b.id NOT IN (
+                  SELECT DISTINCT blog_id FROM user_behavior_log
+                  WHERE user_id = #{userId}
+                    AND behavior_type = 'view'
+                    AND created_at >= NOW() - INTERVAL '7 days'
+              )
+        ) sub
+    </select>
+
+    <select id="findColdStartBlogs" resultMap="BlogResultMap">
+        SELECT b.id, b.title, LEFT(b.content, 200) as content,
+               b.author_id, u.username as author_name, u.avatar_url as author_avatar,
+               b.status, b.like_count, b.view_count, b.category_id,
+               c.name as category_name, b.created_at, b.updated_at
+        FROM blogs b
+        LEFT JOIN users u ON b.author_id = u.user_id
+        LEFT JOIN categories c ON b.category_id = c.id
+        WHERE b.status = 1
+        ORDER BY
+            (COALESCE(b.view_count, 0) * 0.3 + COALESCE(b.like_count, 0) * 2)
+            / (EXTRACT(EPOCH FROM (NOW() - b.created_at)) / 86400 + 1)
+            + 2.0 / (EXTRACT(EPOCH FROM (NOW() - b.created_at)) / 86400 + 1)
+            DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="countColdStartBlogs" resultType="long">
+        SELECT COUNT(1) FROM blogs WHERE status = 1
+    </select>
+
+    <select id="findUserInteractedTagIds" resultType="long">
+        SELECT DISTINCT bt.tag_id
+        FROM user_behavior_log ubl
+        INNER JOIN blog_tags bt ON ubl.blog_id = bt.blog_id
+        WHERE ubl.user_id = #{userId}
+    </select>
+
+    <select id="findUserPreferredCategoryIds" resultType="long">
+        SELECT DISTINCT b.category_id
+        FROM user_behavior_log ubl
+        INNER JOIN blogs b ON ubl.blog_id = b.id
+        WHERE ubl.user_id = #{userId}
+          AND b.category_id IS NOT NULL
+        GROUP BY b.category_id
+        ORDER BY COUNT(*) DESC
+    </select>
+
+    <insert id="insertBehaviorLog" parameterType="com.revy.talkblogback.pojo.UserBehaviorLog">
+        INSERT INTO user_behavior_log (user_id, blog_id, behavior_type, score, created_at)
+        VALUES (#{userId}, #{blogId}, #{behaviorType}, #{score}, NOW())
+    </insert>
+
+    <insert id="refreshUserInterestTags">
+        INSERT INTO user_interest_tags (user_id, tag_id, weight, updated_at)
+        SELECT #{userId}, bt.tag_id,
+               SUM(CASE ubl.behavior_type
+                   WHEN 'like' THEN 3
+                   WHEN 'favorite' THEN 5
+                   WHEN 'comment' THEN 4
+                   WHEN 'view' THEN 1
+                   ELSE 1 END)::DECIMAL(10,4) AS weight,
+               NOW()
+        FROM user_behavior_log ubl
+        INNER JOIN blog_tags bt ON ubl.blog_id = bt.blog_id
+        WHERE ubl.user_id = #{userId}
+        GROUP BY bt.tag_id
+        ON CONFLICT (user_id, tag_id)
+        DO UPDATE SET weight = EXCLUDED.weight, updated_at = NOW()
+    </insert>
+
+    <insert id="refreshUserPreferredCategories">
+        INSERT INTO user_preferred_categories (user_id, category_id, weight, updated_at)
+        SELECT #{userId}, b.category_id,
+               SUM(CASE ubl.behavior_type
+                   WHEN 'like' THEN 3
+                   WHEN 'favorite' THEN 5
+                   WHEN 'comment' THEN 4
+                   WHEN 'view' THEN 1
+                   ELSE 1 END)::DECIMAL(10,4) AS weight,
+               NOW()
+        FROM user_behavior_log ubl
+        INNER JOIN blogs b ON ubl.blog_id = b.id
+        WHERE ubl.user_id = #{userId}
+          AND b.category_id IS NOT NULL
+        GROUP BY b.category_id
+        ON CONFLICT (user_id, category_id)
+        DO UPDATE SET weight = EXCLUDED.weight, updated_at = NOW()
+    </insert>
+
+    <select id="findBehaviorExists" resultType="int">
+        SELECT COUNT(1) FROM user_behavior_log
+        WHERE user_id = #{userId}
+          AND blog_id = #{blogId}
+          AND behavior_type = #{behaviorType}
+    </select>
+</mapper>

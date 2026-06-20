@@ -3,6 +3,7 @@ package com.revy.talkblogback.controller;
 import com.revy.talkblogback.auth.AuthContext;
 import com.revy.talkblogback.auth.RequireRoles;
 import com.revy.talkblogback.pojo.Blog;
+import com.revy.talkblogback.pojo.InteractionUser;
 import com.revy.talkblogback.pojo.response.ApiResponse;
 import com.revy.talkblogback.pojo.response.PageResult;
 import com.revy.talkblogback.pojo.response.UserProfile;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/blogs")
@@ -226,6 +228,36 @@ public class BlogController {
             @RequestParam(defaultValue = "10") int limit) {
         List<Blog> list = blogService.getTrending(days, limit);
         return ResponseEntity.ok(ApiResponse.success("success", list));
+    }
+
+    @GetMapping("/{id}/likes/users")
+    public ResponseEntity<ApiResponse<?>> getUsersWhoLiked(
+            @PathVariable Long id,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        List<InteractionUser> users = blogService.getUsersWhoLiked(id, page, size);
+        int total = blogService.countUsersWhoLiked(id);
+        return ResponseEntity.ok(ApiResponse.success("success", Map.of("list", users, "total", total)));
+    }
+
+    @GetMapping("/{id}/favorites/users")
+    public ResponseEntity<ApiResponse<?>> getUsersWhoFavorited(
+            @PathVariable Long id,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        List<InteractionUser> users = blogService.getUsersWhoFavorited(id, page, size);
+        int total = blogService.countUsersWhoFavorited(id);
+        return ResponseEntity.ok(ApiResponse.success("success", Map.of("list", users, "total", total)));
+    }
+
+    @GetMapping("/{id}/views/users")
+    public ResponseEntity<ApiResponse<?>> getUsersWhoViewed(
+            @PathVariable Long id,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        List<InteractionUser> users = blogService.getUsersWhoViewed(id, page, size);
+        int total = blogService.countUsersWhoViewed(id);
+        return ResponseEntity.ok(ApiResponse.success("success", Map.of("list", users, "total", total)));
     }
 
     private Long getCurrentUserIdIfAuthenticated() {
