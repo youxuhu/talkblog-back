@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.revy.talkblogback.mapper.SensitiveWordMapper">
+
+    <select id="findAll" resultType="com.revy.talkblogback.pojo.SensitiveWord">
+        SELECT id, word, replacement, created_at FROM sensitive_words ORDER BY id
+    </select>
+
+    <insert id="insert" parameterType="com.revy.talkblogback.pojo.SensitiveWord">
+        INSERT INTO sensitive_words (word, replacement, created_at)
+        VALUES (#{word}, #{replacement}, NOW())
+    </insert>
+
+    <delete id="deleteById">
+        DELETE FROM sensitive_words WHERE id = #{id}
+    </delete>
+
+</mapper>

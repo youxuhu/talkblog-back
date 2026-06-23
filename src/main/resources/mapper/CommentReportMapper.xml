@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.revy.talkblogback.mapper.CommentReportMapper">
+
+    <resultMap id="ReportResultMap" type="com.revy.talkblogback.pojo.CommentReport">
+        <id property="id" column="id"/>
+        <result property="commentId" column="comment_id"/>
+        <result property="reporterId" column="reporter_id"/>
+        <result property="reason" column="reason"/>
+        <result property="description" column="description"/>
+        <result property="status" column="status"/>
+        <result property="handledBy" column="handled_by"/>
+        <result property="handledAt" column="handled_at"/>
+        <result property="createdAt" column="created_at"/>
+    </resultMap>
+
+    <insert id="insertReport" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO comment_reports (comment_id, reporter_id, reason, description, status, created_at)
+        VALUES (#{commentId}, #{reporterId}, #{reason}, #{description}, 0, NOW())
+    </insert>
+
+    <select id="findById" resultMap="ReportResultMap">
+        SELECT * FROM comment_reports WHERE id = #{id}
+    </select>
+
+    <select id="findReports" resultMap="ReportResultMap">
+        SELECT * FROM comment_reports
+        <where>
+            <if test="status != null">
+                AND status = #{status}
+            </if>
+        </where>
+        ORDER BY created_at DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="countReports" resultType="long">
+        SELECT COUNT(*) FROM comment_reports
+        <where>
+            <if test="status != null">
+                AND status = #{status}
+            </if>
+        </where>
+    </select>
+
+    <update id="updateReportStatus">
+        UPDATE comment_reports
+        SET status = #{status}, handled_by = #{handledBy}, handled_at = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <select id="countByCommentIdAndReporter" resultType="int">
+        SELECT COUNT(*) FROM comment_reports
+        WHERE comment_id = #{commentId} AND reporter_id = #{reporterId}
+    </select>
+
+</mapper>

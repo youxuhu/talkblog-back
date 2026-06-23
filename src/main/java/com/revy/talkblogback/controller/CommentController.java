@@ -2,11 +2,14 @@ package com.revy.talkblogback.controller;
 
 import com.revy.talkblogback.auth.RequireRoles;
 import com.revy.talkblogback.pojo.request.CreateCommentRequest;
+import com.revy.talkblogback.pojo.request.CreateReportRequest;
+import com.revy.talkblogback.pojo.request.UpdateCommentRequest;
 import com.revy.talkblogback.pojo.response.ApiResponse;
 import com.revy.talkblogback.pojo.response.CommentDetail;
 import com.revy.talkblogback.pojo.response.CommentRow;
 import com.revy.talkblogback.pojo.response.PageResult;
 import com.revy.talkblogback.service.CommentService;
+import com.revy.talkblogback.service.FileService;
 import jakarta.validation.Valid;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -21,9 +24,34 @@ import java.util.Map;
 public class CommentController {
 
     private final CommentService commentService;
+    private final FileService fileService;
 
-    public CommentController(CommentService commentService) {
+    public CommentController(CommentService commentService, FileService fileService) {
         this.commentService = commentService;
+        this.fileService = fileService;
+    }
+
+    @RequireRoles({"USER", "ADMIN", "SUPER_ADMIN"})
+    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<ApiResponse<CommentDetail>> createCommentJson(
+            @Valid @RequestBody CreateCommentRequest request) {
+        try {
+            CommentDetail comment = commentService.createComment(request);
+            return ResponseEntity.ok(ApiResponse.success("评论发表成功", comment));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.failure(e.getMessage()));
+        }
+    }
+
+    @RequireRoles({"USER", "ADMIN", "SUPER_ADMIN"})
+    @PostMapping({"/images", "/upload"})
+    public ResponseEntity<ApiResponse<String>> uploadImage(@RequestParam("file") MultipartFile file) {
+        try {
+            String imageUrl = fileService.uploadCommentImage(file);
+            return ResponseEntity.ok(ApiResponse.success("图片上传成功", imageUrl));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.failure(e.getMessage()));
+        }
     }
 
     @RequireRoles({"USER", "ADMIN", "SUPER_ADMIN"})
@@ -54,7 +82,8 @@ public class CommentController {
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(required = false) Long parentId,
-            @RequestParam(required = false) String status) {
+            @RequestParam(required = false) String status,
+            @RequestParam(defaultValue = "newest") String sort) {
         Short statusValue = null;
         if (status != null && !status.equals("NaN") && !status.isEmpty()) {
             try {
@@ -63,7 +92,7 @@ public class CommentController {
                 statusValue = null;
             }
         }
-        PageResult<CommentDetail> result = commentService.getCommentsByBlogId(blogId, page, size, parentId, statusValue);
+        PageResult<CommentDetail> result = commentService.getCommentsByBlogId(blogId, page, size, parentId, statusValue, sort);
         return ResponseEntity.ok(ApiResponse.success("获取评论成功", result));
     }
 
@@ -96,5 +125,31 @@ public class CommentController {
             @RequestParam(defaultValue = "10") int size) {
         PageResult<CommentRow> result = commentService.getMyComments(page, size);
         return ResponseEntity.ok(ApiResponse.success("获取成功", result));
+    }
+
+    @RequireRoles({"USER", "ADMIN", "SUPER_ADMIN"})
+    @PutMapping("/{commentId}")
+    public ResponseEntity<ApiResponse<CommentDetail>> updateComment(
+            @PathVariable Long commentId,
+            @Valid @RequestBody UpdateCommentRequest request) {
+        try {
+            CommentDetail detail = commentService.updateComment(commentId, request.getContent());
+            return ResponseEntity.ok(ApiResponse.success("评论编辑成功", detail));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.failure(e.getMessage()));
+        }
+    }
+
+    @RequireRoles({"USER", "ADMIN", "SUPER_ADMIN"})
+    @PostMapping("/{commentId}/report")
+    public ResponseEntity<ApiResponse<Void>> reportComment(
+            @PathVariable Long commentId,
+            @Valid @RequestBody CreateReportRequest request) {
+        try {
+            commentService.reportComment(commentId, request);
+            return ResponseEntity.ok(ApiResponse.success("举报已提交"));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.failure(e.getMessage()));
+        }
     }
 }

@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.revy.talkblogback.mapper.BookmarkMapper">
+
+    <resultMap id="BlogResultMap" type="com.revy.talkblogback.pojo.Blog">
+        <id column="id" property="id"/>
+        <result column="title" property="title"/>
+        <result column="content" property="content"/>
+        <result column="author_id" property="authorId"/>
+        <result column="author_name" property="authorName"/>
+        <result column="author_avatar" property="authorAvatar"/>
+        <result column="category" property="category"/>
+        <result column="series_id" property="seriesId"/>
+        <result column="series_name" property="seriesName"/>
+        <result column="view_count" property="viewCount"/>
+        <result column="scheduled_at" property="scheduledAt"/>
+        <result column="status" property="status"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+    </resultMap>
+
+    <insert id="insert">
+        INSERT INTO bookmarks (user_id, blog_id, created_at)
+        VALUES (#{userId}, #{blogId}, NOW())
+    </insert>
+
+    <delete id="delete">
+        DELETE FROM bookmarks WHERE user_id = #{userId} AND blog_id = #{blogId}
+    </delete>
+
+    <select id="findByUserAndBlog" resultType="com.revy.talkblogback.pojo.Bookmark">
+        SELECT * FROM bookmarks WHERE user_id = #{userId} AND blog_id = #{blogId} LIMIT 1
+    </select>
+
+    <select id="findBookmarkedBlogs" resultMap="BlogResultMap">
+        SELECT b.id, b.title, b.content, b.author_id,
+               u.username as author_name, u.avatar_url as author_avatar,
+               b.category, b.series_id, s.name as series_name, b.view_count, b.scheduled_at,
+               b.status, b.created_at, b.updated_at
+        FROM bookmarks bk
+        JOIN blogs b ON bk.blog_id = b.id
+        LEFT JOIN users u ON b.author_id = u.user_id
+        LEFT JOIN series s ON b.series_id = s.id
+        WHERE bk.user_id = #{userId}
+        ORDER BY bk.created_at DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="countBookmarkedBlogs" resultType="long">
+        SELECT COUNT(1) FROM bookmarks WHERE user_id = #{userId}
+    </select>
+
+</mapper>

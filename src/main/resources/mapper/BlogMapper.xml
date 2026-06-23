@@ -9,6 +9,11 @@
         <result column="author_id" property="authorId"/>
         <result column="author_name" property="authorName"/>
         <result column="author_avatar" property="authorAvatar"/>
+        <result column="category" property="category"/>
+        <result column="series_id" property="seriesId"/>
+        <result column="series_name" property="seriesName"/>
+        <result column="view_count" property="viewCount"/>
+        <result column="scheduled_at" property="scheduledAt"/>
         <result column="status" property="status"/>
         <result column="created_at" property="createdAt"/>
         <result column="updated_at" property="updatedAt"/>
@@ -17,9 +22,11 @@
     <select id="findById" parameterType="Long" resultMap="BlogResultMap">
         SELECT b.id, b.title, b.content, b.author_id,
                u.username as author_name, u.avatar_url as author_avatar,
+               b.category, b.series_id, s.name as series_name, b.view_count, b.scheduled_at,
                b.status, b.created_at, b.updated_at
         FROM blogs b
         LEFT JOIN users u ON b.author_id = u.user_id
+        LEFT JOIN series s ON b.series_id = s.id
         WHERE b.id = #{id}
         LIMIT 1
     </select>
@@ -27,13 +34,21 @@
     <select id="findList" resultMap="BlogResultMap">
         SELECT b.id, b.title, b.content, b.author_id,
                u.username as author_name, u.avatar_url as author_avatar,
+               b.category, b.series_id, s.name as series_name, b.view_count, b.scheduled_at,
                b.status, b.created_at, b.updated_at
         FROM blogs b
         LEFT JOIN users u ON b.author_id = u.user_id
+        LEFT JOIN series s ON b.series_id = s.id
         <where>
             b.status = 1
             <if test="keyword != null and keyword != ''">
                 AND b.title LIKE concat('%', #{keyword}, '%')
+            </if>
+            <if test="seriesId != null">
+                AND b.series_id = #{seriesId}
+            </if>
+            <if test="category != null and category != ''">
+                AND b.category = #{category}
             </if>
         </where>
         ORDER BY b.created_at DESC
@@ -48,16 +63,27 @@
             <if test="keyword != null and keyword != ''">
                 AND b.title LIKE concat('%', #{keyword}, '%')
             </if>
+            <if test="seriesId != null">
+                AND b.series_id = #{seriesId}
+            </if>
+            <if test="category != null and category != ''">
+                AND b.category = #{category}
+            </if>
         </where>
     </select>
 
     <select id="findByAuthorId" resultMap="BlogResultMap">
         SELECT b.id, b.title, b.content, b.author_id,
                u.username as author_name, u.avatar_url as author_avatar,
+               b.category, b.series_id, s.name as series_name, b.view_count, b.scheduled_at,
                b.status, b.created_at, b.updated_at
         FROM blogs b
         LEFT JOIN users u ON b.author_id = u.user_id
+        LEFT JOIN series s ON b.series_id = s.id
         WHERE b.author_id = #{authorId}
+        <if test="status != null">
+            AND b.status = #{status}
+        </if>
         ORDER BY b.created_at DESC
         LIMIT #{limit} OFFSET #{offset}
     </select>
@@ -66,12 +92,15 @@
         SELECT COUNT(1)
         FROM blogs b
         WHERE b.author_id = #{authorId}
+        <if test="status != null">
+            AND b.status = #{status}
+        </if>
     </select>
 
     <insert id="insert" parameterType="com.revy.talkblogback.pojo.Blog" useGeneratedKeys="true"
             keyProperty="id" keyColumn="id">
-        INSERT INTO blogs (title, content, author_id, status, created_at, updated_at)
-        VALUES (#{title}, #{content}, #{authorId}, #{status}, NOW(), NOW())
+        INSERT INTO blogs (title, content, author_id, category, series_id, scheduled_at, status, view_count, created_at, updated_at)
+        VALUES (#{title}, #{content}, #{authorId}, #{category}, #{seriesId}, #{scheduledAt}, #{status}, 0, NOW(), NOW())
     </insert>
 
     <update id="update" parameterType="com.revy.talkblogback.pojo.Blog">
@@ -79,14 +108,41 @@
         <set>
             <if test="title != null">title = #{title},</if>
             <if test="content != null">content = #{content},</if>
+            <if test="category != null">category = #{category},</if>
+            <if test="seriesId != null">series_id = #{seriesId},</if>
+            <if test="scheduledAt != null">scheduled_at = #{scheduledAt},</if>
             <if test="status != null">status = #{status},</if>
             updated_at = NOW()
         </set>
         WHERE id = #{id}
     </update>
 
+    <update id="incrementViewCount">
+        UPDATE blogs SET view_count = view_count + 1 WHERE id = #{id}
+    </update>
+
     <delete id="deleteById" parameterType="Long">
         DELETE FROM blogs WHERE id = #{id}
     </delete>
+
+    <select id="findScheduledToPublish" resultMap="BlogResultMap">
+        SELECT b.id, b.title, b.content, b.author_id,
+               u.username as author_name, u.avatar_url as author_avatar,
+               b.category, b.series_id, s.name as series_name, b.view_count, b.scheduled_at,
+               b.status, b.created_at, b.updated_at
+        FROM blogs b
+        LEFT JOIN users u ON b.author_id = u.user_id
+        LEFT JOIN series s ON b.series_id = s.id
+        WHERE b.status = 0
+          AND b.scheduled_at IS NOT NULL
+          AND b.scheduled_at &lt;= #{now}
+        LIMIT 50
+    </select>
+
+    <update id="publishById">
+        UPDATE blogs
+        SET status = 1, updated_at = NOW()
+        WHERE id = #{id} AND status = 0
+    </update>
 
 </mapper>

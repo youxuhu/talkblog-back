@@ -16,6 +16,14 @@ spring:
       idle-timeout: 600000
       max-lifetime: 1800000
 
+  # 数据库初始化
+  sql:
+    init:
+      mode: always
+      continue-on-error: true
+      schema-locations: classpath:schema.sql, classpath:schema/seed_roles.sql, classpath:schema/comments_schema.sql, classpath:schema/migration_v2.sql, classpath:schema/migration_v3.sql
+      data-locations: classpath:schema/seed_data.sql
+
 # 日志配置
 logging:
   # 日志级别

@@ -17,11 +17,13 @@ public class CommentRow {
     private String blogTitle;
     private Long userId;
     private String username;
+    private String avatarUrl;
     private String email;
     private String content;
     private Integer likeCount;
     private String ipAddress;
     private Short status;
+    private Boolean isPinned;
     private LocalDateTime createdAt;
     private List<String> images;
 }

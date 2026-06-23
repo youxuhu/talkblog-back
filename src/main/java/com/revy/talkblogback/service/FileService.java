@@ -12,6 +12,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import static java.lang.System.getProperty;
+
 @Service
 public class FileService {
 
@@ -21,8 +23,51 @@ public class FileService {
     @Value("${file.comment-images-dir:comment-images}")
     private String commentImagesDir;
 
+    private static final String AVATAR_DIR = "avatars";
     private static final long MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
     private static final List<String> ALLOWED_TYPES = List.of("image/jpeg", "image/png", "image/gif", "image/webp");
+
+    public String uploadAvatar(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("文件不能为空");
+        }
+        validateFile(file);
+        Path uploadPath = resolveUploadDir(AVATAR_DIR);
+        try {
+            Files.createDirectories(uploadPath);
+        } catch (IOException e) {
+            throw new IllegalArgumentException("无法创建上传目录: " + e.getMessage());
+        }
+        String fileName = generateFileName(file.getOriginalFilename());
+        Path filePath = uploadPath.resolve(fileName);
+        try {
+            file.transferTo(filePath.toFile());
+            return "/" + uploadDir + "/" + AVATAR_DIR + "/" + fileName;
+        } catch (IOException e) {
+            throw new IllegalArgumentException("文件上传失败: " + e.getMessage());
+        }
+    }
+
+    public String uploadCommentImage(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("文件不能为空");
+        }
+        validateFile(file);
+        Path uploadPath = resolveUploadDir(commentImagesDir);
+        try {
+            Files.createDirectories(uploadPath);
+        } catch (IOException e) {
+            throw new IllegalArgumentException("无法创建上传目录: " + e.getMessage());
+        }
+        String fileName = generateFileName(file.getOriginalFilename());
+        Path filePath = uploadPath.resolve(fileName);
+        try {
+            file.transferTo(filePath.toFile());
+            return "/" + uploadDir + "/" + commentImagesDir + "/" + fileName;
+        } catch (IOException e) {
+            throw new IllegalArgumentException("文件上传失败: " + e.getMessage());
+        }
+    }
 
     public List<String> uploadCommentImages(List<MultipartFile> files) {
         if (files == null || files.isEmpty()) {
@@ -30,7 +75,7 @@ public class FileService {
         }
 
         List<String> imageUrls = new ArrayList<>();
-        Path uploadPath = Paths.get(uploadDir, commentImagesDir);
+        Path uploadPath = resolveUploadDir(commentImagesDir);
 
         try {
             Files.createDirectories(uploadPath);
@@ -57,6 +102,14 @@ public class FileService {
         }
 
         return imageUrls;
+    }
+
+    private Path resolveUploadDir(String subDir) {
+        Path path = Paths.get(uploadDir, subDir);
+        if (!path.isAbsolute()) {
+            path = Paths.get(getProperty("user.home"), uploadDir, subDir);
+        }
+        return path;
     }
 
     private void validateFile(MultipartFile file) {

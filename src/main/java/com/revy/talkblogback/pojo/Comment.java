@@ -24,6 +24,8 @@ public class Comment {
     private Short status;
     private Integer likeCount;
     private String ipAddress;
+    private Boolean isPinned;
+    private Integer editCount;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

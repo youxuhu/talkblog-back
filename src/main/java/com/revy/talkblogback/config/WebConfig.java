@@ -5,19 +5,25 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
+import static java.lang.System.getProperty;
+
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
 
     @Value("${file.upload-dir:uploads}")
     private String uploadDir;
 
-    @Value("${file.comment-images-dir:comment-images}")
-    private String commentImagesDir;
-
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        String commentImagesPath = "file:" + uploadDir + "/" + commentImagesDir + "/";
-        registry.addResourceHandler("/" + uploadDir + "/" + commentImagesDir + "/**")
-                .addResourceLocations(commentImagesPath);
+        Path path = Paths.get(uploadDir);
+        if (!path.isAbsolute()) {
+            path = Paths.get(getProperty("user.home"), uploadDir);
+        }
+        String absPath = path.toAbsolutePath() + "/";
+        registry.addResourceHandler("/" + uploadDir + "/**")
+                .addResourceLocations("file:" + absPath);
     }
 }

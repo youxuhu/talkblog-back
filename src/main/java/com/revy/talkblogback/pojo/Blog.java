@@ -15,6 +15,11 @@ public class Blog {
     private Long authorId;
     private String authorName;
     private String authorAvatar;
+    private String category;
+    private Long seriesId;
+    private String seriesName;
+    private Long viewCount;
+    private LocalDateTime scheduledAt;
     private Short status;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

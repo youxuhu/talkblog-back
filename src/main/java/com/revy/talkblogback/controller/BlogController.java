@@ -25,8 +25,10 @@ public class BlogController {
     public ResponseEntity<ApiResponse<PageResult<Blog>>> list(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size,
-            @RequestParam(required = false) String keyword) {
-        PageResult<Blog> result = blogService.list(page, size, keyword);
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Long seriesId,
+            @RequestParam(required = false) String category) {
+        PageResult<Blog> result = blogService.list(page, size, keyword, seriesId, category);
         return ResponseEntity.ok(ApiResponse.success("success", result));
     }
 
@@ -34,19 +36,20 @@ public class BlogController {
     @RequireRoles
     public ResponseEntity<ApiResponse<PageResult<Blog>>> myBlogs(
             @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "10") int size) {
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) Short status) {
         UserProfile user = AuthContext.get();
         if (user == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(ApiResponse.failure("Unauthorized"));
         }
-        PageResult<Blog> result = blogService.listMyBlogs(user.getUserId(), page, size);
+        PageResult<Blog> result = blogService.listMyBlogs(user.getUserId(), page, size, status);
         return ResponseEntity.ok(ApiResponse.success("success", result));
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<Blog>> detail(@PathVariable Long id) {
-        Blog blog = blogService.getById(id);
+        Blog blog = blogService.getByIdAndIncrementViewCount(id);
         if (blog == null) {
             return ResponseEntity.ok(ApiResponse.failure("Blog not found"));
         }
@@ -114,7 +117,11 @@ public class BlogController {
             return ResponseEntity.ok(ApiResponse.failure("Blog not found"));
         }
 
-        if (!existing.getAuthorId().equals(user.getUserId())) {
+        boolean isAuthor = existing.getAuthorId().equals(user.getUserId());
+        boolean isAdmin = user.getRoles() != null && user.getRoles().stream()
+                .anyMatch(r -> r.equalsIgnoreCase("ADMIN") || r.equalsIgnoreCase("SUPER_ADMIN"));
+
+        if (!isAuthor && !isAdmin) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(ApiResponse.failure("No permission"));
         }

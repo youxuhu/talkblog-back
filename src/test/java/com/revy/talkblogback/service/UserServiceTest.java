@@ -42,6 +42,7 @@ class UserServiceTest {
     private UserService userService;
     private FaceServiceProperties faceServiceProperties;
     private JwtTokenService jwtTokenService;
+    private FileService fileService;
 
     @BeforeEach
     void setUp() {
@@ -52,7 +53,8 @@ class UserServiceTest {
         faceServiceProperties.setUrl("http://localhost:5000");
         faceServiceProperties.setExtractEndpoint("/extract");
         jwtTokenService = new JwtTokenService(new ObjectMapper(), new AuthProperties());
-        userService = new UserService(loginMapper, faceVectorMapper, restTemplate, faceServiceProperties, jwtTokenService);
+        fileService = mock(FileService.class);
+        userService = new UserService(loginMapper, faceVectorMapper, restTemplate, faceServiceProperties, jwtTokenService, fileService);
     }
 
     /**

@@ -16,10 +16,13 @@ public class CommentDetail {
     private Long blogId;
     private Long userId;
     private String username;
+    private String avatarUrl;
     private String content;
     private Integer likeCount;
     private LocalDateTime createdAt;
     private Short status;
+    private Boolean isPinned;
+    private Integer editCount;
     private String replyToUsername;
     private List<CommentDetail> replies;
     private List<String> images;

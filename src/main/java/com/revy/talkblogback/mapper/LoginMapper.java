@@ -30,6 +30,8 @@ public interface LoginMapper {
          */
         User findUserById(@Param("userId") Long userId);
 
+    User findUserByUsername(@Param("username") String username);
+
         /**
          * 插入用户信息。
          *
@@ -115,4 +117,31 @@ public interface LoginMapper {
          * @return 影响行数
          */
         int updateUserStatus(@Param("userId") Long userId, @Param("status") Short status);
+
+        /**
+         * 更新用户名。
+         *
+         * @param userId   用户 ID
+         * @param username 新用户名
+         * @return 影响行数
+         */
+        int updateUsername(@Param("userId") Long userId, @Param("username") String username);
+
+        /**
+         * 更新密码哈希。
+         *
+         * @param userId       用户 ID
+         * @param passwordHash 新密码哈希
+         * @return 影响行数
+         */
+        int updatePasswordHash(@Param("userId") Long userId, @Param("passwordHash") String passwordHash);
+
+        /**
+         * 更新用户头像 URL。
+         *
+         * @param userId    用户 ID
+         * @param avatarUrl 头像 URL
+         * @return 影响行数
+         */
+        int updateAvatarUrl(@Param("userId") Long userId, @Param("avatarUrl") String avatarUrl);
 }

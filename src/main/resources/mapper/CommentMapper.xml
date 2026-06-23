@@ -15,6 +15,8 @@
         <result property="ipAddress" column="ip_address"/>
         <result property="createdAt" column="created_at"/>
         <result property="updatedAt" column="updated_at"/>
+        <result property="isPinned" column="is_pinned"/>
+        <result property="editCount" column="edit_count"/>
     </resultMap>
 
     <resultMap id="CommentDetailResultMap" type="com.revy.talkblogback.pojo.response.CommentDetail">
@@ -22,10 +24,13 @@
         <result property="blogId" column="blog_id"/>
         <result property="userId" column="user_id"/>
         <result property="username" column="username"/>
+        <result property="avatarUrl" column="avatar_url"/>
         <result property="content" column="content"/>
         <result property="likeCount" column="like_count"/>
         <result property="createdAt" column="created_at"/>
         <result property="status" column="status"/>
+        <result property="isPinned" column="is_pinned"/>
+        <result property="editCount" column="edit_count"/>
         <result property="replyToUsername" column="reply_to_username"/>
     </resultMap>
 
@@ -35,17 +40,19 @@
         <result property="blogTitle" column="blog_title"/>
         <result property="userId" column="user_id"/>
         <result property="username" column="username"/>
+        <result property="avatarUrl" column="avatar_url"/>
         <result property="email" column="email"/>
         <result property="content" column="content"/>
         <result property="likeCount" column="like_count"/>
         <result property="ipAddress" column="ip_address"/>
         <result property="status" column="status"/>
+        <result property="isPinned" column="is_pinned"/>
         <result property="createdAt" column="created_at"/>
     </resultMap>
 
     <insert id="insertComment" useGeneratedKeys="true" keyProperty="commentId">
-        INSERT INTO comments (blog_id, user_id, parent_id, reply_to_user_id, content, status, like_count, ip_address, created_at, updated_at)
-        VALUES (#{blogId}, #{userId}, #{parentId}, #{replyToUserId}, #{content}, #{status}, 0, #{ipAddress}, NOW(), NOW())
+        INSERT INTO comments (blog_id, user_id, parent_id, reply_to_user_id, content, status, like_count, ip_address, is_pinned, created_at, updated_at)
+        VALUES (#{blogId}, #{userId}, #{parentId}, #{replyToUserId}, #{content}, #{status}, 0, #{ipAddress}, FALSE, NOW(), NOW())
     </insert>
 
     <select id="findCommentById" resultMap="CommentResultMap">
@@ -58,10 +65,13 @@
             c.blog_id,
             c.user_id,
             u.username,
+            u.avatar_url AS avatar_url,
             c.content,
             c.like_count,
             c.created_at,
             c.status,
+            c.is_pinned,
+            c.edit_count,
             ru.username AS reply_to_username
         FROM comments c
         JOIN users u ON c.user_id = u.user_id
@@ -71,7 +81,18 @@
           <if test="status != null">
               AND c.status = #{status}
           </if>
-        ORDER BY c.created_at DESC
+        ORDER BY c.is_pinned DESC,
+        <choose>
+            <when test="sort == 'oldest'">
+                c.created_at ASC
+            </when>
+            <when test="sort == 'hot'">
+                c.like_count DESC, c.created_at DESC
+            </when>
+            <otherwise>
+                c.created_at DESC
+            </otherwise>
+        </choose>
         LIMIT #{limit} OFFSET #{offset}
     </select>
 
@@ -90,10 +111,13 @@
             c.blog_id,
             c.user_id,
             u.username,
+            u.avatar_url AS avatar_url,
             c.content,
             c.like_count,
             c.created_at,
             c.status,
+            c.is_pinned,
+            c.edit_count,
             ru.username AS reply_to_username
         FROM comments c
         JOIN users u ON c.user_id = u.user_id
@@ -113,6 +137,20 @@
     <delete id="deleteCommentAdmin">
         DELETE FROM comments WHERE comment_id = #{commentId}
     </delete>
+
+    <update id="updateCommentContent">
+        UPDATE comments SET content = #{content}, edit_count = edit_count + 1, updated_at = NOW()
+        WHERE comment_id = #{commentId}
+    </update>
+
+    <update id="togglePin">
+        UPDATE comments SET is_pinned = NOT is_pinned, updated_at = NOW()
+        WHERE comment_id = #{commentId}
+    </update>
+
+    <select id="findIsPinned" resultType="boolean">
+        SELECT is_pinned FROM comments WHERE comment_id = #{commentId}
+    </select>
 
     <update id="incrementLikeCount">
         UPDATE comments SET like_count = like_count + 1 WHERE comment_id = #{commentId}
@@ -186,17 +224,20 @@
         SELECT
             c.comment_id,
             c.blog_id,
-            'Blog #' || c.blog_id AS blog_title,
+            b.title AS blog_title,
             c.user_id,
             u.username,
+            u.avatar_url,
             u.email,
             c.content,
             c.like_count,
             c.ip_address,
             c.status,
+            c.is_pinned,
             c.created_at
         FROM comments c
         JOIN users u ON c.user_id = u.user_id
+        LEFT JOIN blogs b ON c.blog_id = b.id
         WHERE c.user_id = #{userId}
         ORDER BY c.created_at DESC
         LIMIT #{limit} OFFSET #{offset}

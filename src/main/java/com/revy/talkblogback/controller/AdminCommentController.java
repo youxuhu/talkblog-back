@@ -1,6 +1,7 @@
 package com.revy.talkblogback.controller;
 
 import com.revy.talkblogback.auth.RequireRoles;
+import com.revy.talkblogback.pojo.CommentReport;
 import com.revy.talkblogback.pojo.request.BatchReviewRequest;
 import com.revy.talkblogback.pojo.request.UpdateCommentStatusRequest;
 import com.revy.talkblogback.pojo.response.ApiResponse;
@@ -11,6 +12,8 @@ import com.revy.talkblogback.service.CommentService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/admin/comments")
@@ -79,5 +82,45 @@ public class AdminCommentController {
             @RequestParam(defaultValue = "30") int days) {
         CommentStats stats = commentService.getCommentStats(days);
         return ResponseEntity.ok(ApiResponse.success("获取统计数据成功", stats));
+    }
+
+    @PatchMapping("/{commentId}/pin")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> togglePin(@PathVariable Long commentId) {
+        try {
+            boolean pinned = commentService.togglePin(commentId);
+            String msg = pinned ? "评论已置顶" : "评论已取消置顶";
+            return ResponseEntity.ok(ApiResponse.success(msg, Map.of("isPinned", pinned)));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.failure(e.getMessage()));
+        }
+    }
+
+    @GetMapping("/reports")
+    public ResponseEntity<ApiResponse<PageResult<CommentReport>>> getReports(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String status) {
+        Short statusValue = null;
+        if (status != null && !status.isEmpty()) {
+            try {
+                statusValue = Short.parseShort(status);
+            } catch (NumberFormatException e) {
+                statusValue = null;
+            }
+        }
+        PageResult<CommentReport> result = commentService.getReports(page, size, statusValue);
+        return ResponseEntity.ok(ApiResponse.success("获取成功", result));
+    }
+
+    @PatchMapping("/reports/{reportId}")
+    public ResponseEntity<ApiResponse<Void>> handleReport(
+            @PathVariable Long reportId,
+            @Valid @RequestBody UpdateCommentStatusRequest request) {
+        try {
+            commentService.handleReport(reportId, request.getStatus());
+            return ResponseEntity.ok(ApiResponse.success("处理成功", null));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.failure(e.getMessage()));
+        }
     }
 }

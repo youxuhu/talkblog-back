@@ -20,6 +20,7 @@ public interface CommentMapper {
     List<CommentDetail> findCommentsByBlogId(@Param("blogId") Long blogId,
                                              @Param("parentId") Long parentId,
                                              @Param("status") Short status,
+                                             @Param("sort") String sort,
                                              @Param("offset") int offset,
                                              @Param("limit") int limit);
 
@@ -34,6 +35,12 @@ public interface CommentMapper {
     int deleteComment(@Param("commentId") Long commentId, @Param("userId") Long userId);
 
     int deleteCommentAdmin(@Param("commentId") Long commentId);
+
+    int updateCommentContent(@Param("commentId") Long commentId, @Param("content") String content);
+
+    int togglePin(@Param("commentId") Long commentId);
+
+    Boolean findIsPinned(@Param("commentId") Long commentId);
 
     int incrementLikeCount(@Param("commentId") Long commentId);
 

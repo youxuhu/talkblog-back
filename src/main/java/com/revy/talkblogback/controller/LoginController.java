@@ -79,4 +79,14 @@ public class LoginController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.failure(ex.getMessage()));
         }
     }
+
+    /**
+     * 退出登录（JWT 无状态，仅返回成功）。
+     *
+     * @return 退出结果
+     */
+    @PostMapping("/logout")
+    public ResponseEntity<ApiResponse<Void>> logout() {
+        return ResponseEntity.ok(ApiResponse.success("Logged out"));
+    }
 }

@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.revy.talkblogback.mapper.NotificationMapper">
+
+    <resultMap id="NotificationResultMap" type="com.revy.talkblogback.pojo.Notification">
+        <id column="id" property="id"/>
+        <result column="user_id" property="userId"/>
+        <result column="type" property="type"/>
+        <result column="message" property="message"/>
+        <result column="link" property="link"/>
+        <result column="is_read" property="isRead"/>
+        <result column="created_at" property="createdAt"/>
+    </resultMap>
+
+    <select id="findByUserId" resultMap="NotificationResultMap">
+        SELECT id, user_id, type, message, link, is_read, created_at
+        FROM notifications
+        WHERE user_id = #{userId}
+        ORDER BY created_at DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="countByUserId" resultType="long">
+        SELECT COUNT(1) FROM notifications WHERE user_id = #{userId}
+    </select>
+
+    <select id="countUnreadByUserId" resultType="int">
+        SELECT COUNT(1) FROM notifications WHERE user_id = #{userId} AND is_read = FALSE
+    </select>
+
+    <update id="markAsRead">
+        UPDATE notifications SET is_read = TRUE WHERE id = #{id} AND user_id = #{userId}
+    </update>
+
+    <update id="markAllAsRead">
+        UPDATE notifications SET is_read = TRUE WHERE user_id = #{userId} AND is_read = FALSE
+    </update>
+
+    <insert id="insert" parameterType="com.revy.talkblogback.pojo.Notification" useGeneratedKeys="true"
+            keyProperty="id" keyColumn="id">
+        INSERT INTO notifications (user_id, type, message, link, is_read, created_at)
+        VALUES (#{userId}, #{type}, #{message}, #{link}, FALSE, NOW())
+    </insert>
+
+</mapper>

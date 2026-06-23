@@ -46,6 +46,14 @@
         LIMIT 1
     </select>
 
+    <select id="findUserByUsername" parameterType="String" resultMap="UserResultMap">
+        SELECT user_id, username, email, phone, password_hash, face_vector_id, login_type, avatar_url,
+               status, created_at, updated_at, last_login_time
+        FROM users
+        WHERE username = #{username}
+        LIMIT 1
+    </select>
+
     <select id="findUserById" parameterType="Long" resultMap="UserResultMap">
         SELECT user_id, username, email, phone, password_hash, face_vector_id, login_type, avatar_url,
                status, created_at, updated_at, last_login_time
@@ -142,6 +150,24 @@
     <update id="updateUserStatus">
         UPDATE users
         SET status = #{status}, updated_at = NOW()
+        WHERE user_id = #{userId}
+    </update>
+
+    <update id="updateUsername">
+        UPDATE users
+        SET username = #{username}, updated_at = NOW()
+        WHERE user_id = #{userId}
+    </update>
+
+    <update id="updatePasswordHash">
+        UPDATE users
+        SET password_hash = #{passwordHash}, updated_at = NOW()
+        WHERE user_id = #{userId}
+    </update>
+
+    <update id="updateAvatarUrl">
+        UPDATE users
+        SET avatar_url = #{avatarUrl}, updated_at = NOW()
         WHERE user_id = #{userId}
     </update>
 

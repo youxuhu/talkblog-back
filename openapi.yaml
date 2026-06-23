@@ -149,6 +149,30 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CreateCommentRequest'
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - blogId
+                - content
+              properties:
+                blogId:
+                  type: integer
+                  format: int64
+                content:
+                  type: string
+                  description: 评论内容，支持 Emoji，按 Unicode 码点计数
+                parentId:
+                  type: integer
+                  format: int64
+                replyToUserId:
+                  type: integer
+                  format: int64
+                images:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
       responses:
         '200':
           description: Comment created
@@ -538,6 +562,7 @@ components:
         content:
           type: string
           maxLength: 500
+          description: 评论内容，支持 Emoji，按实际 Unicode 码点计数（最多 500 个码点）
         parentId:
           type: integer
           format: int64
