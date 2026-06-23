@@ -32,5 +32,11 @@ build/
 ### VS Code ###
 .vscode/
 
+# Logs
+logs/
+
+# Uploads
+uploads/
+
 # Face vector model artifacts
 face_vector_service/models/
