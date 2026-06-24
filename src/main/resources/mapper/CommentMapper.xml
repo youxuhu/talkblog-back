@@ -1,0 +1,257 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.revy.talkblogback.mapper.CommentMapper">
+
+    <resultMap id="CommentResultMap" type="com.revy.talkblogback.pojo.Comment">
+        <id property="commentId" column="comment_id"/>
+        <result property="blogId" column="blog_id"/>
+        <result property="userId" column="user_id"/>
+        <result property="parentId" column="parent_id"/>
+        <result property="replyToUserId" column="reply_to_user_id"/>
+        <result property="content" column="content"/>
+        <result property="status" column="status"/>
+        <result property="likeCount" column="like_count"/>
+        <result property="ipAddress" column="ip_address"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <resultMap id="CommentDetailResultMap" type="com.revy.talkblogback.pojo.response.CommentDetail">
+        <id property="commentId" column="comment_id"/>
+        <result property="blogId" column="blog_id"/>
+        <result property="userId" column="user_id"/>
+        <result property="username" column="username"/>
+        <result property="content" column="content"/>
+        <result property="likeCount" column="like_count"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="status" column="status"/>
+        <result property="replyToUsername" column="reply_to_username"/>
+    </resultMap>
+
+    <resultMap id="CommentRowResultMap" type="com.revy.talkblogback.pojo.response.CommentRow">
+        <id property="commentId" column="comment_id"/>
+        <result property="blogId" column="blog_id"/>
+        <result property="blogTitle" column="blog_title"/>
+        <result property="userId" column="user_id"/>
+        <result property="username" column="username"/>
+        <result property="email" column="email"/>
+        <result property="content" column="content"/>
+        <result property="likeCount" column="like_count"/>
+        <result property="ipAddress" column="ip_address"/>
+        <result property="status" column="status"/>
+        <result property="createdAt" column="created_at"/>
+    </resultMap>
+
+    <insert id="insertComment" useGeneratedKeys="true" keyProperty="commentId">
+        INSERT INTO comments (blog_id, user_id, parent_id, reply_to_user_id, content, status, like_count, ip_address, created_at, updated_at)
+        VALUES (#{blogId}, #{userId}, #{parentId}, #{replyToUserId}, #{content}, #{status}, 0, #{ipAddress}, NOW(), NOW())
+    </insert>
+
+    <select id="findCommentById" resultMap="CommentResultMap">
+        SELECT * FROM comments WHERE comment_id = #{commentId}
+    </select>
+
+    <select id="findCommentsByBlogId" resultMap="CommentDetailResultMap">
+        SELECT
+            c.comment_id,
+            c.blog_id,
+            c.user_id,
+            u.username,
+            c.content,
+            c.like_count,
+            c.created_at,
+            c.status,
+            ru.username AS reply_to_username
+        FROM comments c
+        JOIN users u ON c.user_id = u.user_id
+        LEFT JOIN users ru ON c.reply_to_user_id = ru.user_id
+        WHERE c.blog_id = #{blogId}
+          AND c.parent_id IS NULL
+          <if test="status != null">
+              AND c.status = #{status}
+          </if>
+        ORDER BY c.created_at DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="countCommentsByBlogId" resultType="long">
+        SELECT COUNT(*) FROM comments
+        WHERE blog_id = #{blogId}
+          AND parent_id IS NULL
+          <if test="status != null">
+              AND status = #{status}
+          </if>
+    </select>
+
+    <select id="findRepliesByParentId" resultMap="CommentDetailResultMap">
+        SELECT
+            c.comment_id,
+            c.blog_id,
+            c.user_id,
+            u.username,
+            c.content,
+            c.like_count,
+            c.created_at,
+            c.status,
+            ru.username AS reply_to_username
+        FROM comments c
+        JOIN users u ON c.user_id = u.user_id
+        LEFT JOIN users ru ON c.reply_to_user_id = ru.user_id
+        WHERE c.parent_id = #{parentId}
+        ORDER BY c.created_at ASC
+    </select>
+
+    <update id="updateCommentStatus">
+        UPDATE comments SET status = #{status}, updated_at = NOW() WHERE comment_id = #{commentId}
+    </update>
+
+    <delete id="deleteComment">
+        DELETE FROM comments WHERE comment_id = #{commentId} AND user_id = #{userId}
+    </delete>
+
+    <delete id="deleteCommentAdmin">
+        DELETE FROM comments WHERE comment_id = #{commentId}
+    </delete>
+
+    <update id="incrementLikeCount">
+        UPDATE comments SET like_count = like_count + 1 WHERE comment_id = #{commentId}
+    </update>
+
+    <update id="decrementLikeCount">
+        UPDATE comments SET like_count = GREATEST(like_count - 1, 0) WHERE comment_id = #{commentId}
+    </update>
+
+    <select id="findCommentLike" resultType="com.revy.talkblogback.pojo.CommentLike">
+        SELECT * FROM comment_likes WHERE comment_id = #{commentId} AND user_id = #{userId}
+    </select>
+
+    <insert id="insertCommentLike">
+        INSERT INTO comment_likes (comment_id, user_id, created_at)
+        VALUES (#{commentId}, #{userId}, NOW())
+    </insert>
+
+    <delete id="deleteCommentLike">
+        DELETE FROM comment_likes WHERE comment_id = #{commentId} AND user_id = #{userId}
+    </delete>
+
+    <select id="findAdminComments" resultMap="CommentRowResultMap">
+        SELECT
+            c.comment_id,
+            c.blog_id,
+            'Blog #' || c.blog_id AS blog_title,
+            c.user_id,
+            u.username,
+            u.email,
+            c.content,
+            c.like_count,
+            c.ip_address,
+            c.status,
+            c.created_at
+        FROM comments c
+        JOIN users u ON c.user_id = u.user_id
+        <where>
+            <if test="keyword != null and keyword != ''">
+                AND (c.content ILIKE '%' || #{keyword} || '%' OR u.username ILIKE '%' || #{keyword} || '%' OR u.email ILIKE '%' || #{keyword} || '%')
+            </if>
+            <if test="status != null">
+                AND c.status = #{status}
+            </if>
+            <if test="blogId != null and blogId != ''">
+                AND c.blog_id = #{blogId}::bigint
+            </if>
+        </where>
+        ORDER BY c.created_at DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="countAdminComments" resultType="long">
+        SELECT COUNT(*)
+        FROM comments c
+        JOIN users u ON c.user_id = u.user_id
+        <where>
+            <if test="keyword != null and keyword != ''">
+                AND (c.content ILIKE '%' || #{keyword} || '%' OR u.username ILIKE '%' || #{keyword} || '%' OR u.email ILIKE '%' || #{keyword} || '%')
+            </if>
+            <if test="status != null">
+                AND c.status = #{status}
+            </if>
+            <if test="blogId != null and blogId != ''">
+                AND c.blog_id = #{blogId}::bigint
+            </if>
+        </where>
+    </select>
+
+    <select id="findMyComments" resultMap="CommentRowResultMap">
+        SELECT
+            c.comment_id,
+            c.blog_id,
+            'Blog #' || c.blog_id AS blog_title,
+            c.user_id,
+            u.username,
+            u.email,
+            c.content,
+            c.like_count,
+            c.ip_address,
+            c.status,
+            c.created_at
+        FROM comments c
+        JOIN users u ON c.user_id = u.user_id
+        WHERE c.user_id = #{userId}
+        ORDER BY c.created_at DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="countMyComments" resultType="long">
+        SELECT COUNT(*) FROM comments WHERE user_id = #{userId}
+    </select>
+
+    <select id="findCommentStats" resultType="map">
+        SELECT
+            COUNT(*) AS total_comments,
+            COUNT(*) FILTER (WHERE status = 0) AS pending_review,
+            COUNT(*) FILTER (WHERE status = 1) AS approved,
+            COUNT(*) FILTER (WHERE status = 2) AS rejected,
+            COUNT(*) FILTER (WHERE created_at >= CURRENT_DATE) AS today_comments,
+            COALESCE(SUM(like_count), 0) AS total_likes
+        FROM comments
+        WHERE created_at >= CURRENT_DATE - INTERVAL '1 day' * #{days}
+    </select>
+
+    <select id="findDailyTrend" resultType="map">
+        SELECT
+            DATE(created_at) AS date,
+            COUNT(*) AS count
+        FROM comments
+        WHERE created_at >= CURRENT_DATE - INTERVAL '1 day' * #{days}
+        GROUP BY DATE(created_at)
+        ORDER BY date ASC
+    </select>
+
+    <select id="findTopBlogs" resultType="map">
+        SELECT
+            blog_id AS "blogId",
+            'Blog #' || blog_id AS "blogTitle",
+            COUNT(*) AS "commentCount"
+        FROM comments
+        WHERE created_at >= CURRENT_DATE - INTERVAL '1 day' * #{days}
+        GROUP BY blog_id
+        ORDER BY "commentCount" DESC
+        LIMIT #{limit}
+    </select>
+
+    <select id="findTopCommenters" resultType="map">
+        SELECT
+            c.user_id AS "userId",
+            u.username,
+            COUNT(c.comment_id) AS "commentCount",
+            COALESCE(SUM(c.like_count), 0) AS "likeCount"
+        FROM comments c
+        JOIN users u ON c.user_id = u.user_id
+        WHERE c.created_at >= CURRENT_DATE - INTERVAL '1 day' * #{days}
+        GROUP BY c.user_id, u.username
+        ORDER BY "commentCount" DESC, "likeCount" DESC
+        LIMIT #{limit}
+    </select>
+
+</mapper>

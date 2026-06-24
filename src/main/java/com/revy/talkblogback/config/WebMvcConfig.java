@@ -68,12 +68,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
                 requireRoles = handlerMethod.getBeanType().getAnnotation(RequireRoles.class);
             }
 
-            String authorization = request.getHeader("Authorization");
-            UserProfile userProfile = null;
-            if (authorization != null && authorization.startsWith("Bearer ")) {
-                String token = authorization.substring(7).trim();
-                userProfile = jwtTokenService.parseToken(token);
-            }
+            UserProfile userProfile = tryParseToken(request);
 
             if (requireRoles != null) {
                 if (userProfile == null) {
@@ -110,6 +105,23 @@ public class WebMvcConfig implements WebMvcConfigurer {
 
             return Arrays.stream(requiredRoles)
                     .anyMatch(required -> userProfile.getRoles().stream().anyMatch(role -> role.equalsIgnoreCase(required)));
+        }
+
+        @Nullable
+        private UserProfile tryParseToken(HttpServletRequest request) {
+            String authorization = request.getHeader("Authorization");
+            if (authorization == null || !authorization.startsWith("Bearer ")) {
+                return null;
+            }
+            String token = authorization.substring(7).trim();
+            if (token.isEmpty()) {
+                return null;
+            }
+            try {
+                return jwtTokenService.parseToken(token);
+            } catch (Exception e) {
+                return null;
+            }
         }
 
         private void writeError(HttpServletResponse response, int status, String message) throws IOException {

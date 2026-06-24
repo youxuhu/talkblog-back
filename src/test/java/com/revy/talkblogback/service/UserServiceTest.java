@@ -128,7 +128,7 @@ class UserServiceTest {
      * 校验：邮箱+人脸匹配成功时应返回 true，并更新最后登录时间。
      */
     @Test
-    @SuppressWarnings({ "unchecked", "null" })
+    @SuppressWarnings({ "unchecked",   })
     void login_shouldReturnTrue_whenEmailAndFaceMatched() {
         User dbUser = new User();
         dbUser.setUserId(1001L);

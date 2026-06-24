@@ -79,6 +79,12 @@ server:
   compression:
     enabled: true
     mime-types: application/json,application/xml,text/html,text/xml,text/plain
+  # Multipart 配置
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 5MB
+      max-request-size: 20MB
 
 # 文件上传配置
 spring.servlet.multipart:
@@ -105,3 +111,9 @@ mybatis:
   configuration:
     # 将下划线命名自动映射到驼峰字段，例如 user_id -> userId
     map-underscore-to-camel-case: true
+
+# 文件上传配置
+file:
+  upload-dir: uploads
+  comment-images-dir: comment-images
+  blog-images-dir: blog-images
