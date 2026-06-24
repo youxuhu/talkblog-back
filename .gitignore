@@ -1,12 +1,7 @@
 logs/
-__pycache__/
-**/mvn_repo/
 HELP.md
 target/
 .mvn/wrapper/maven-wrapper.jar
-logs/
-# Express chat server dependencies
-chat_server/node_modules/
 !**/src/main/**/target/
 !**/src/test/**/target/
 
@@ -38,8 +33,16 @@ build/
 ### VS Code ###
 .vscode/
 
-# Logs
-logs/
+# Python bytecode
+__pycache__/
+*.pyc
+
+# Express chat server dependencies
+chat_server/node_modules/
+
+# AI service
+ai_service/face_vector_service/models/
+ai_service/**/__pycache__/
 
 # Uploads
 uploads/
@@ -47,8 +50,5 @@ uploads/
 # Face vector model artifacts
 face_vector_service/models/
 
-# Logs
-logs/
-
-# Uploads
-uploads/
+# Maven repos (accidentally committed)
+**/mvn_repo/
