@@ -27,8 +27,20 @@ public class CommentController {
     }
 
     @RequireRoles({"USER", "ADMIN", "SUPER_ADMIN"})
-    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping
     public ResponseEntity<ApiResponse<CommentDetail>> createComment(
+            @Valid @RequestBody CreateCommentRequest request) {
+        try {
+            CommentDetail comment = commentService.createComment(request);
+            return ResponseEntity.ok(ApiResponse.success("评论发表成功", comment));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.failure(e.getMessage()));
+        }
+    }
+
+    @RequireRoles({"USER", "ADMIN", "SUPER_ADMIN"})
+    @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<CommentDetail>> createCommentWithImages(
             @RequestParam("blogId") Long blogId,
             @RequestParam("content") String content,
             @RequestParam(value = "parentId", required = false) Long parentId,
