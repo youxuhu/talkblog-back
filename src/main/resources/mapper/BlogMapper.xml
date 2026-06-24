@@ -90,8 +90,8 @@
 
     <insert id="insert" parameterType="com.revy.talkblogback.pojo.Blog" useGeneratedKeys="true"
             keyProperty="id" keyColumn="id">
-        INSERT INTO blogs (title, content, author_id, status, category_id, created_at, updated_at)
-        VALUES (#{title}, #{content}, #{authorId}, #{status}, #{categoryId}, NOW(), NOW())
+        INSERT INTO blogs (title, content, author_id, status, category_id, series_id, created_at, updated_at)
+        VALUES (#{title}, #{content}, #{authorId}, #{status}, #{categoryId}, #{seriesId}, NOW(), NOW())
     </insert>
 
     <update id="update" parameterType="com.revy.talkblogback.pojo.Blog">
@@ -101,6 +101,7 @@
             <if test="content != null">content = #{content},</if>
             <if test="status != null">status = #{status},</if>
             <if test="categoryId != null">category_id = #{categoryId},</if>
+            <if test="seriesId != null">series_id = #{seriesId},</if>
             updated_at = NOW()
         </set>
         WHERE id = #{id}

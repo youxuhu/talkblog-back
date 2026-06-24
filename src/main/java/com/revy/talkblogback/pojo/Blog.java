@@ -22,6 +22,7 @@ public class Blog {
     private Boolean favorited;
     private Long categoryId;
     private String categoryName;
+    private Long seriesId;
     private List<Tag> tags;
     private Integer viewCount;
     private LocalDateTime createdAt;
