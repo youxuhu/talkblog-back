@@ -30,6 +30,7 @@ import java.util.Objects;
 import java.time.LocalDateTime;
 
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.web.multipart.MultipartFile;
 
 /**
  * 服务层，用于处理用户相关的业务逻辑。
@@ -45,6 +46,7 @@ public class UserService {
     private final LoginMapper loginMapper;
     private final FaceVectorMapper faceVectorMapper;
     private final RestTemplate restTemplate;
+    private final FileService fileService;
     private final BCryptPasswordEncoder passwordEncoder;
     private final FaceServiceProperties faceServiceProperties;
     private final JwtTokenService jwtTokenService;
@@ -53,11 +55,13 @@ public class UserService {
             LoginMapper loginMapper,
             FaceVectorMapper faceVectorMapper,
             RestTemplate restTemplate,
+            FileService fileService,
             FaceServiceProperties faceServiceProperties,
             JwtTokenService jwtTokenService) {
         this.loginMapper = loginMapper;
         this.faceVectorMapper = faceVectorMapper;
         this.restTemplate = restTemplate;
+        this.fileService = fileService;
         this.faceServiceProperties = faceServiceProperties;
         this.jwtTokenService = jwtTokenService;
         this.passwordEncoder = new BCryptPasswordEncoder();
@@ -233,6 +237,50 @@ public class UserService {
         }
 
         return loginMapper.updateUserStatus(userId, status) > 0;
+    }
+
+    public void updateProfile(Long userId, String username) {
+        if (userId == null) {
+            throw new IllegalArgumentException("User id is required.");
+        }
+        if (!StringUtils.hasText(username)) {
+            throw new IllegalArgumentException("Username is required.");
+        }
+        loginMapper.updateUsername(userId, username.trim());
+    }
+
+    public String updateAvatar(Long userId, MultipartFile file) {
+        if (userId == null) {
+            throw new IllegalArgumentException("User id is required.");
+        }
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("头像文件不能为空");
+        }
+        String avatarUrl = fileService.uploadAvatar(file);
+        loginMapper.updateAvatarUrl(userId, avatarUrl);
+        return avatarUrl;
+    }
+
+    public void changePassword(Long userId, String oldPassword, String newPassword) {
+        if (userId == null) {
+            throw new IllegalArgumentException("User id is required.");
+        }
+        if (!StringUtils.hasText(oldPassword)) {
+            throw new IllegalArgumentException("Old password is required.");
+        }
+        if (!StringUtils.hasText(newPassword)) {
+            throw new IllegalArgumentException("New password is required.");
+        }
+
+        User user = loginMapper.findUserById(userId);
+        if (user == null) {
+            throw new IllegalArgumentException("User not found.");
+        }
+        if (!passwordEncoder.matches(oldPassword, user.getPasswordHash())) {
+            throw new IllegalArgumentException("旧密码不正确");
+        }
+
+        loginMapper.updatePasswordHash(userId, passwordEncoder.encode(newPassword));
     }
 
     /**

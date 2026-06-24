@@ -117,4 +117,10 @@ public interface LoginMapper {
          * @return 影响行数
          */
         int updateUserStatus(@Param("userId") Long userId, @Param("status") Short status);
+
+        int updateUsername(@Param("userId") Long userId, @Param("username") String username);
+
+        int updateAvatarUrl(@Param("userId") Long userId, @Param("avatarUrl") String avatarUrl);
+
+        int updatePasswordHash(@Param("userId") Long userId, @Param("passwordHash") String passwordHash);
 }

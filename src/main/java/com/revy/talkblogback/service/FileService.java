@@ -90,6 +90,27 @@ public class FileService {
         }
     }
 
+    public String uploadAvatar(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("文件不能为空");
+        }
+        validateFile(file);
+        Path uploadPath = resolveUploadPath("avatars");
+        try {
+            Files.createDirectories(uploadPath);
+        } catch (IOException e) {
+            throw new IllegalArgumentException("无法创建上传目录");
+        }
+        String fileName = generateFileName(file.getOriginalFilename());
+        Path filePath = uploadPath.resolve(fileName);
+        try {
+            file.transferTo(filePath.toFile());
+            return "/" + uploadDir + "/avatars/" + fileName;
+        } catch (IOException e) {
+            throw new IllegalArgumentException("头像上传失败");
+        }
+    }
+
     public void deleteBlogImage(String imageUrl) {
         if (imageUrl == null || imageUrl.isBlank()) {
             throw new IllegalArgumentException("图片地址不能为空");

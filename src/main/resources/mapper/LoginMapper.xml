@@ -153,4 +153,16 @@
         WHERE user_id = #{userId}
     </update>
 
+    <update id="updateUsername">
+        UPDATE users SET username = #{username}, updated_at = NOW() WHERE user_id = #{userId}
+    </update>
+
+    <update id="updateAvatarUrl">
+        UPDATE users SET avatar_url = #{avatarUrl}, updated_at = NOW() WHERE user_id = #{userId}
+    </update>
+
+    <update id="updatePasswordHash">
+        UPDATE users SET password_hash = #{passwordHash}, updated_at = NOW() WHERE user_id = #{userId}
+    </update>
+
 </mapper>

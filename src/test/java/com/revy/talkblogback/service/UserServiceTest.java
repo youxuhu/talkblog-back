@@ -19,6 +19,8 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.multipart.MultipartFile;
+import com.revy.talkblogback.service.FileService;
 
 import java.util.HashMap;
 import java.util.List;
@@ -39,6 +41,7 @@ class UserServiceTest {
     private LoginMapper loginMapper;
     private FaceVectorMapper faceVectorMapper;
     private RestTemplate restTemplate;
+    private FileService fileService;
     private UserService userService;
     private FaceServiceProperties faceServiceProperties;
     private JwtTokenService jwtTokenService;
@@ -48,11 +51,12 @@ class UserServiceTest {
         loginMapper = mock(LoginMapper.class);
         faceVectorMapper = mock(FaceVectorMapper.class);
         restTemplate = mock(RestTemplate.class);
+        fileService = mock(FileService.class);
         faceServiceProperties = new FaceServiceProperties();
         faceServiceProperties.setUrl("http://localhost:5000");
         faceServiceProperties.setExtractEndpoint("/extract");
         jwtTokenService = new JwtTokenService(new ObjectMapper(), new AuthProperties());
-        userService = new UserService(loginMapper, faceVectorMapper, restTemplate, faceServiceProperties, jwtTokenService);
+        userService = new UserService(loginMapper, faceVectorMapper, restTemplate, fileService, faceServiceProperties, jwtTokenService);
     }
 
     /**
