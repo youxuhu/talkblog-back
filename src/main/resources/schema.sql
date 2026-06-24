@@ -61,6 +61,15 @@ CREATE TABLE IF NOT EXISTS tags (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS series (
+    id          BIGSERIAL PRIMARY KEY,
+    name        VARCHAR(100) NOT NULL,
+    description TEXT,
+    author_id   BIGINT NOT NULL REFERENCES users(user_id),
+    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE IF NOT EXISTS blogs (
     id          BIGSERIAL PRIMARY KEY,
     title       VARCHAR(255) NOT NULL,
@@ -70,6 +79,7 @@ CREATE TABLE IF NOT EXISTS blogs (
     like_count  INTEGER DEFAULT 0,
     view_count  INTEGER DEFAULT 0,
     category_id BIGINT REFERENCES categories(id),
+    series_id   BIGINT REFERENCES series(id),
     created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
