@@ -213,6 +213,34 @@ public class UserService {
         return loginByFace(email, faceImage) != null;
     }
 
+    @Transactional(rollbackFor = Exception.class)
+    public void reRegisterFace(Long userId, String faceImage) {
+        if (userId == null) {
+            throw new IllegalArgumentException("User id is required.");
+        }
+        if (!StringUtils.hasText(faceImage)) {
+            throw new IllegalArgumentException("Face image is required.");
+        }
+
+        float[] vector = extractFaceVector(faceImage);
+        if (vector == null || vector.length != 512) {
+            throw new IllegalArgumentException("Face image is invalid or no single face detected.");
+        }
+
+        faceVectorMapper.deleteByUserId(userId);
+
+        FaceVector faceVector = new FaceVector();
+        faceVector.setUserId(userId);
+        faceVector.setFaceVector(vector);
+        faceVector.setFaceImageUrl(null);
+        faceVectorMapper.insertFaceVector(faceVector);
+        if (faceVector.getVectorId() == null) {
+            throw new IllegalStateException("Failed to create face vector record.");
+        }
+
+        loginMapper.bindFaceVector(userId, faceVector.getVectorId());
+    }
+
     public PageResult<UserProfile> pageUsers(int page, int size, String keyword) {
         int safePage = Math.max(page, 1);
         int safeSize = Math.max(size, 1);

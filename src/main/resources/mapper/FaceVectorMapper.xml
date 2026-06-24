@@ -28,6 +28,19 @@
         WHERE user_id = #{userId}
     </select>
 
+    <!-- 根据用户ID更新人脸向量 -->
+    <update id="updateFaceVector" parameterType="com.revy.talkblogback.pojo.FaceVector">
+        UPDATE face_vectors
+        SET face_vector = #{faceVector, typeHandler=com.revy.talkblogback.handler.PgVectorTypeHandler},
+            face_image_url = #{faceImageUrl},
+            updated_at = NOW()
+        WHERE user_id = #{userId}
+    </update>
+
+    <delete id="deleteByUserId">
+        DELETE FROM face_vectors WHERE user_id = #{userId}
+    </delete>
+
     <!-- 查询最相似的人脸向量 -->
     <select id="findClosestFaceVector" resultMap="FaceVectorResultMap">
         SELECT vector_id, user_id, face_vector, face_image_url, created_at, updated_at

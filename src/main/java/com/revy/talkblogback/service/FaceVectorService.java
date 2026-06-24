@@ -42,4 +42,12 @@ public class FaceVectorService {
     public FaceVector findClosestFaceVector(float[] queryVector) {
         return faceVectorMapper.findClosestFaceVector(queryVector);
     }
+
+    public void updateFaceVector(FaceVector faceVector) {
+        faceVectorMapper.updateFaceVector(faceVector);
+    }
+
+    public void deleteByUserId(Long userId) {
+        faceVectorMapper.deleteByUserId(userId);
+    }
 }

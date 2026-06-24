@@ -1,53 +1,42 @@
 package com.revy.talkblogback.controller;
 
+import com.revy.talkblogback.auth.AuthContext;
+import com.revy.talkblogback.auth.RequireRoles;
 import com.revy.talkblogback.pojo.FaceVector;
+import com.revy.talkblogback.pojo.response.ApiResponse;
+import com.revy.talkblogback.pojo.response.UserProfile;
 import com.revy.talkblogback.service.FaceVectorService;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.revy.talkblogback.service.UserService;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-/**
- * 控制器层，用于处理人脸向量相关的 HTTP 请求。
- */
 @RestController
 @RequestMapping("/api/face")
 public class FaceVectorController {
 
-    @Autowired
-    private FaceVectorService faceVectorService;
+    private final FaceVectorService faceVectorService;
+    private final UserService userService;
 
-    /**
-     * 注册人脸向量。
-     *
-     * @param faceVector 人脸向量对象
-     * @return 注册结果
-     */
+    public FaceVectorController(FaceVectorService faceVectorService, UserService userService) {
+        this.faceVectorService = faceVectorService;
+        this.userService = userService;
+    }
+
     @PostMapping("/register")
     public String registerFace(@RequestBody FaceVector faceVector) {
         faceVectorService.saveFaceVector(faceVector);
         return "Face vector registered successfully!";
     }
 
-    /**
-     * 根据用户 ID 查询人脸向量。
-     *
-     * @param userId 用户 ID
-     * @return 人脸向量对象
-     */
     @GetMapping("/user/{userId}")
     public FaceVector getFaceVectorByUserId(@PathVariable Long userId) {
         return faceVectorService.getFaceVectorByUserId(userId);
     }
 
-    /**
-     * 查询与给定向量最相似的人脸向量。
-     *
-     * @param request 包含查询向量的请求体
-     * @return 最相似的人脸向量对象
-     */
     @PostMapping("/match")
     public FaceVector matchFace(@RequestBody Map<String, Object> request) {
         Object vectorObject = request.get("face_vector");
@@ -66,5 +55,24 @@ public class FaceVectorController {
         }
 
         return faceVectorService.findClosestFaceVector(queryVector);
+    }
+
+    @PostMapping("/re-register")
+    @RequireRoles
+    public ResponseEntity<ApiResponse<Void>> reRegisterFace(@RequestBody Map<String, String> request) {
+        UserProfile currentUser = AuthContext.get();
+        if (currentUser == null) {
+            return ResponseEntity.status(401).body(ApiResponse.failure("Unauthorized"));
+        }
+        String image = request.get("image");
+        if (image == null || image.isBlank()) {
+            return ResponseEntity.badRequest().body(ApiResponse.failure("Face image is required"));
+        }
+        try {
+            userService.reRegisterFace(currentUser.getUserId(), image);
+            return ResponseEntity.ok(ApiResponse.success("人脸更新成功"));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.failure(e.getMessage()));
+        }
     }
 }

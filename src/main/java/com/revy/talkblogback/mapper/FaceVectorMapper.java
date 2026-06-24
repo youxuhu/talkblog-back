@@ -32,4 +32,8 @@ public interface FaceVectorMapper {
      * @return 最相似的人脸向量对象
      */
     FaceVector findClosestFaceVector(@Param("queryVector") float[] queryVector);
+
+    int updateFaceVector(FaceVector faceVector);
+
+    int deleteByUserId(@Param("userId") Long userId);
 }
