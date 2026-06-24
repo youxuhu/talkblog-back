@@ -30,6 +30,8 @@ public interface LoginMapper {
          */
         User findUserById(@Param("userId") Long userId);
 
+        User findUserByUsername(@Param("username") String username);
+
         /**
          * 插入用户信息。
          *

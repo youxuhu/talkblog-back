@@ -52,3 +52,6 @@ face_vector_service/models/
 
 # Maven repos (accidentally committed)
 **/mvn_repo/
+
+# System setup scripts
+Miniconda3-latest-Linux-x86_64.sh

@@ -1,0 +1,329 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.revy.talkblogback.mapper.ChatroomMapper">
+
+    <resultMap id="ChatroomRowMap" type="com.revy.talkblogback.pojo.dto.ChatroomRow">
+        <id column="chatroom_id" property="chatroomId"/>
+        <result column="name" property="name"/>
+        <result column="description" property="description"/>
+        <result column="member_count" property="memberCount"/>
+        <result column="message_count" property="messageCount"/>
+        <result column="max_members" property="maxMembers"/>
+        <result column="status" property="status"/>
+        <result column="is_private" property="isPrivate"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+    </resultMap>
+
+    <resultMap id="ChatroomMemberRowMap" type="com.revy.talkblogback.pojo.dto.ChatroomMemberRow">
+        <result column="user_id" property="userId"/>
+        <result column="username" property="username"/>
+        <result column="nickname" property="nickname"/>
+        <result column="avatar_url" property="avatarUrl"/>
+        <result column="role" property="role"/>
+        <result column="joined_at" property="joinedAt"/>
+        <result column="last_active_time" property="lastActiveTime"/>
+        <result column="message_count" property="messageCount"/>
+        <result column="muted_until" property="mutedUntil"/>
+    </resultMap>
+
+    <resultMap id="ChatroomMap" type="com.revy.talkblogback.pojo.Chatroom">
+        <id column="chatroom_id" property="chatroomId"/>
+        <result column="name" property="name"/>
+        <result column="description" property="description"/>
+        <result column="max_members" property="maxMembers"/>
+        <result column="is_private" property="isPrivate"/>
+        <result column="status" property="status"/>
+        <result column="creator_id" property="creatorId"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+    </resultMap>
+
+    <select id="pageChatrooms" resultMap="ChatroomRowMap">
+        SELECT
+            c.chatroom_id,
+            c.name,
+            c.description,
+            COALESCE(mc.member_count, 0) AS member_count,
+            COALESCE(msg.message_count, 0) AS message_count,
+            c.max_members,
+            c.status,
+            c.is_private,
+            c.created_at,
+            c.updated_at
+        FROM chatrooms c
+        LEFT JOIN (
+            SELECT chatroom_id, COUNT(*) AS member_count
+            FROM chatroom_members
+            GROUP BY chatroom_id
+        ) mc ON c.chatroom_id = mc.chatroom_id
+        LEFT JOIN (
+            SELECT chatroom_id, COUNT(*) AS message_count
+            FROM chatroom_messages
+            GROUP BY chatroom_id
+        ) msg ON c.chatroom_id = msg.chatroom_id
+        <if test="keyword != null and keyword != ''">
+            WHERE c.name LIKE CONCAT('%', #{keyword}, '%')
+               OR c.description LIKE CONCAT('%', #{keyword}, '%')
+        </if>
+        ORDER BY c.created_at DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="pageMyChatrooms" resultMap="ChatroomRowMap">
+        SELECT
+            c.chatroom_id,
+            c.name,
+            c.description,
+            COALESCE(mc.member_count, 0) AS member_count,
+            COALESCE(msg.message_count, 0) AS message_count,
+            c.max_members,
+            c.status,
+            c.is_private,
+            c.created_at,
+            c.updated_at
+        FROM chatrooms c
+        JOIN chatroom_members cm ON c.chatroom_id = cm.chatroom_id AND cm.user_id = #{userId}
+        LEFT JOIN (
+            SELECT chatroom_id, COUNT(*) AS member_count
+            FROM chatroom_members
+            GROUP BY chatroom_id
+        ) mc ON c.chatroom_id = mc.chatroom_id
+        LEFT JOIN (
+            SELECT chatroom_id, COUNT(*) AS message_count
+            FROM chatroom_messages
+            GROUP BY chatroom_id
+        ) msg ON c.chatroom_id = msg.chatroom_id
+        ORDER BY c.created_at DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="countChatrooms" resultType="long">
+        SELECT COUNT(*)
+        FROM chatrooms c
+        <if test="keyword != null and keyword != ''">
+            WHERE c.name LIKE CONCAT('%', #{keyword}, '%')
+               OR c.description LIKE CONCAT('%', #{keyword}, '%')
+        </if>
+    </select>
+
+    <select id="findChatroomById" resultMap="ChatroomRowMap">
+        SELECT
+            c.chatroom_id,
+            c.name,
+            c.description,
+            COALESCE(mc.member_count, 0) AS member_count,
+            COALESCE(msg.message_count, 0) AS message_count,
+            c.max_members,
+            c.status,
+            c.is_private,
+            c.created_at,
+            c.updated_at
+        FROM chatrooms c
+        LEFT JOIN (
+            SELECT chatroom_id, COUNT(*) AS member_count
+            FROM chatroom_members
+            GROUP BY chatroom_id
+        ) mc ON c.chatroom_id = mc.chatroom_id
+        LEFT JOIN (
+            SELECT chatroom_id, COUNT(*) AS message_count
+            FROM chatroom_messages
+            GROUP BY chatroom_id
+        ) msg ON c.chatroom_id = msg.chatroom_id
+        WHERE c.chatroom_id = #{chatroomId}
+    </select>
+
+    <insert id="insertChatroom" useGeneratedKeys="true" keyProperty="chatroomId" parameterType="com.revy.talkblogback.pojo.Chatroom">
+        INSERT INTO chatrooms (name, description, max_members, is_private, status, creator_id, created_at, updated_at)
+        VALUES (#{name}, #{description}, #{maxMembers}, #{isPrivate}, #{status}, #{creatorId}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <update id="updateChatroom" parameterType="com.revy.talkblogback.pojo.Chatroom">
+        UPDATE chatrooms
+        <set>
+            <if test="name != null">name = #{name},</if>
+            <if test="description != null">description = #{description},</if>
+            <if test="maxMembers != null">max_members = #{maxMembers},</if>
+            <if test="isPrivate != null">is_private = #{isPrivate},</if>
+            <if test="status != null">status = #{status},</if>
+            updated_at = #{updatedAt}
+        </set>
+        WHERE chatroom_id = #{chatroomId}
+    </update>
+
+    <delete id="deleteChatroom">
+        DELETE FROM chatrooms WHERE chatroom_id = #{chatroomId}
+    </delete>
+
+    <select id="pageChatroomMembers" resultMap="ChatroomMemberRowMap">
+        SELECT
+            cm.user_id,
+            u.username,
+            COALESCE(cm.nickname, u.username) AS nickname,
+            u.avatar_url,
+            cm.role,
+            cm.joined_at,
+            cm.last_active_time,
+            COALESCE(msg.message_count, 0) AS message_count,
+            cm.muted_until
+        FROM chatroom_members cm
+        JOIN users u ON cm.user_id = u.user_id
+        LEFT JOIN (
+            SELECT chatroom_id, user_id, COUNT(*) AS message_count
+            FROM chatroom_messages
+            GROUP BY chatroom_id, user_id
+        ) msg ON cm.chatroom_id = msg.chatroom_id AND cm.user_id = msg.user_id
+        WHERE cm.chatroom_id = #{chatroomId}
+        <if test="keyword != null and keyword != ''">
+            AND (u.username LIKE CONCAT('%', #{keyword}, '%') OR u.email LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+        ORDER BY cm.role DESC, cm.joined_at ASC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="countChatroomMembers" resultType="long">
+        SELECT COUNT(*)
+        FROM chatroom_members cm
+        JOIN users u ON cm.user_id = u.user_id
+        WHERE cm.chatroom_id = #{chatroomId}
+        <if test="keyword != null and keyword != ''">
+            AND (u.username LIKE CONCAT('%', #{keyword}, '%') OR u.email LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+    </select>
+
+    <insert id="insertMember">
+        INSERT INTO chatroom_members (chatroom_id, user_id, role, joined_at, last_active_time, message_count)
+        VALUES (#{chatroomId}, #{userId}, #{role}, NOW(), NOW(), 0)
+    </insert>
+
+    <delete id="deleteMember">
+        DELETE FROM chatroom_members WHERE chatroom_id = #{chatroomId} AND user_id = #{userId}
+    </delete>
+
+    <update id="updateMemberRole">
+        UPDATE chatroom_members
+        SET role = #{role}
+        WHERE chatroom_id = #{chatroomId} AND user_id = #{userId}
+    </update>
+
+    <select id="countMembersByChatroomId" resultType="int">
+        SELECT COUNT(*) FROM chatroom_members WHERE chatroom_id = #{chatroomId}
+    </select>
+
+    <select id="countMemberByChatroomAndUser" resultType="int">
+        SELECT COUNT(*) FROM chatroom_members WHERE chatroom_id = #{chatroomId} AND user_id = #{userId}
+    </select>
+
+    <select id="countTotalChatrooms" resultType="long">
+        SELECT COUNT(*) FROM chatrooms
+    </select>
+
+    <select id="countTotalMembers" resultType="long">
+        SELECT COUNT(DISTINCT user_id) FROM chatroom_members
+    </select>
+
+    <select id="countTotalMessages" resultType="long">
+        SELECT COUNT(*) FROM chatroom_messages
+    </select>
+
+    <select id="countActiveChatrooms" resultType="long">
+        SELECT COUNT(*) FROM chatrooms WHERE status = 'ACTIVE'
+    </select>
+
+    <select id="countTodayMessages" resultType="long">
+        SELECT COUNT(*) FROM chatroom_messages WHERE DATE(created_at) = CURRENT_DATE
+    </select>
+
+    <select id="avgMembersPerChatroom" resultType="double">
+        SELECT COALESCE(AVG(member_count), 0)
+        FROM (
+            SELECT chatroom_id, COUNT(*) AS member_count
+            FROM chatroom_members
+            GROUP BY chatroom_id
+        ) sub
+    </select>
+
+    <resultMap id="MessageRowMap" type="com.revy.talkblogback.pojo.dto.MessageRow">
+        <id column="message_id" property="messageId"/>
+        <result column="chatroom_id" property="chatroomId"/>
+        <result column="user_id" property="userId"/>
+        <result column="username" property="username"/>
+        <result column="content" property="content"/>
+        <result column="is_recalled" property="isRecalled"/>
+        <result column="is_pinned" property="isPinned"/>
+        <result column="created_at" property="createdAt"/>
+    </resultMap>
+
+    <select id="pageMessages" resultMap="MessageRowMap">
+        SELECT m.message_id, m.chatroom_id, m.user_id, u.username, m.content, m.is_recalled, m.is_pinned, m.created_at
+        FROM chatroom_messages m
+        JOIN users u ON m.user_id = u.user_id
+        WHERE m.chatroom_id = #{chatroomId}
+        ORDER BY m.created_at ASC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="countMessages" resultType="long">
+        SELECT COUNT(*) FROM chatroom_messages WHERE chatroom_id = #{chatroomId}
+    </select>
+
+    <insert id="insertMessage" useGeneratedKeys="true" keyProperty="messageId" parameterType="com.revy.talkblogback.pojo.ChatroomMessage">
+        INSERT INTO chatroom_messages (chatroom_id, user_id, content, created_at)
+        VALUES (#{chatroomId}, #{userId}, #{content}, NOW())
+    </insert>
+
+    <update id="updateMemberLastActive">
+        UPDATE chatroom_members
+        SET last_active_time = NOW(), message_count = message_count + 1
+        WHERE chatroom_id = #{chatroomId} AND user_id = #{userId}
+    </update>
+
+    <select id="findMessageById" resultType="com.revy.talkblogback.pojo.ChatroomMessage">
+        SELECT * FROM chatroom_messages WHERE message_id = #{messageId}
+    </select>
+
+    <update id="recallMessage">
+        UPDATE chatroom_messages SET is_recalled = TRUE WHERE message_id = #{messageId}
+    </update>
+
+    <update id="updatePinStatus">
+        UPDATE chatroom_messages SET is_pinned = #{isPinned} WHERE message_id = #{messageId}
+    </update>
+
+    <delete id="deleteMessageById">
+        DELETE FROM chatroom_messages WHERE message_id = #{messageId}
+    </delete>
+
+    <select id="findMemberRole" resultType="string">
+        SELECT role FROM chatroom_members WHERE chatroom_id = #{chatroomId} AND user_id = #{userId}
+    </select>
+
+    <update id="updateMutedUntil">
+        UPDATE chatroom_members
+        SET muted_until = #{mutedUntil}
+        WHERE chatroom_id = #{chatroomId} AND user_id = #{userId}
+    </update>
+
+    <select id="findMutedUntil" resultType="java.time.LocalDateTime">
+        SELECT muted_until FROM chatroom_members WHERE chatroom_id = #{chatroomId} AND user_id = #{userId}
+    </select>
+
+    <select id="selectDailyStats" resultType="com.revy.talkblogback.pojo.dto.DailyStatRow">
+        SELECT
+            DATE(cm.created_at) AS date,
+            COUNT(cm.message_id) AS messageCount,
+            COUNT(DISTINCT cm.user_id) AS activeMembers,
+            COUNT(DISTINCT CASE WHEN DATE(cm.created_at) = DATE(cm.created_at) THEN cm.user_id END) AS newMembers
+        FROM chatroom_messages cm
+        WHERE cm.chatroom_id = #{chatroomId}
+        <if test="startDate != null and startDate != ''">
+            AND DATE(cm.created_at) &gt;= #{startDate}
+        </if>
+        <if test="endDate != null and endDate != ''">
+            AND DATE(cm.created_at) &lt;= #{endDate}
+        </if>
+        GROUP BY DATE(cm.created_at)
+        ORDER BY date DESC
+    </select>
+
+</mapper>
