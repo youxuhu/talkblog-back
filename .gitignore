@@ -1,6 +1,9 @@
 HELP.md
 target/
 .mvn/wrapper/maven-wrapper.jar
+logs/
+# Express chat server dependencies
+chat_server/node_modules/
 !**/src/main/**/target/
 !**/src/test/**/target/
 
