@@ -1,0 +1,238 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.revy.talkblogback.mapper.ChatGroupMapper">
+
+    <resultMap id="ChatGroupResultMap" type="com.revy.talkblogback.pojo.ChatGroup">
+        <id column="group_id" property="groupId"/>
+        <result column="group_name" property="groupName"/>
+        <result column="group_avatar" property="groupAvatar"/>
+        <result column="owner_id" property="ownerId"/>
+        <result column="group_type" property="groupType"/>
+        <result column="is_public" property="isPublic"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+    </resultMap>
+
+    <resultMap id="GroupMemberResultMap" type="com.revy.talkblogback.pojo.GroupMember">
+        <id column="id" property="id"/>
+        <result column="group_id" property="groupId"/>
+        <result column="user_id" property="userId"/>
+        <result column="role" property="role"/>
+        <result column="joined_at" property="joinedAt"/>
+    </resultMap>
+
+    <resultMap id="GroupMemberResponseResultMap" type="com.revy.talkblogback.pojo.response.GroupMemberResponse">
+        <id column="id" property="id"/>
+        <result column="group_id" property="groupId"/>
+        <result column="user_id" property="userId"/>
+        <result column="role" property="role"/>
+        <result column="joined_at" property="joinedAt"/>
+        <result column="username" property="username"/>
+        <result column="email" property="email"/>
+        <result column="avatar" property="avatar"/>
+    </resultMap>
+
+    <resultMap id="ChatGroupResponseResultMap" type="com.revy.talkblogback.pojo.response.ChatGroupResponse">
+        <id column="group_id" property="groupId"/>
+        <result column="group_name" property="groupName"/>
+        <result column="group_avatar" property="groupAvatar"/>
+        <result column="owner_id" property="ownerId"/>
+        <result column="group_type" property="groupType"/>
+        <result column="is_public" property="isPublic"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+        <result column="member_count" property="memberCount"/>
+        <result column="owner_name" property="ownerName"/>
+    </resultMap>
+
+    <insert id="insertGroup" parameterType="com.revy.talkblogback.pojo.ChatGroup" useGeneratedKeys="true"
+            keyProperty="groupId" keyColumn="group_id">
+        INSERT INTO chat_groups (group_name, group_avatar, owner_id, group_type, is_public, created_at, updated_at)
+        VALUES (#{groupName}, #{groupAvatar}, #{ownerId}, #{groupType}, #{isPublic}, NOW(), NOW())
+    </insert>
+
+    <select id="findGroupById" parameterType="Long" resultMap="ChatGroupResultMap">
+        SELECT group_id, group_name, group_avatar, owner_id, group_type, is_public, created_at, updated_at
+        FROM chat_groups
+        WHERE group_id = #{groupId}
+        LIMIT 1
+    </select>
+
+    <select id="findGroupByIdWithMemberCount" resultMap="ChatGroupResponseResultMap">
+        SELECT cg.group_id, cg.group_name, cg.group_avatar, cg.owner_id, cg.group_type, cg.is_public,
+               cg.created_at, cg.updated_at,
+               COUNT(gm.user_id) AS member_count,
+               u.username AS owner_name
+        FROM chat_groups cg
+        JOIN users u ON cg.owner_id = u.user_id
+        LEFT JOIN group_members gm ON cg.group_id = gm.group_id
+        WHERE cg.group_id = #{groupId}
+        GROUP BY cg.group_id, cg.group_name, cg.group_avatar, cg.owner_id, cg.group_type, cg.is_public,
+                 cg.created_at, cg.updated_at, u.username
+        LIMIT 1
+    </select>
+
+    <select id="findGroupsByUserId" resultMap="ChatGroupResponseResultMap">
+        SELECT cg.group_id, cg.group_name, cg.group_avatar, cg.owner_id, cg.group_type, cg.is_public,
+               cg.created_at, cg.updated_at,
+               COUNT(gm.user_id) AS member_count,
+               u.username AS owner_name
+        FROM chat_groups cg
+        JOIN group_members gm ON cg.group_id = gm.group_id
+        JOIN users u ON cg.owner_id = u.user_id
+        WHERE gm.user_id = #{userId}
+        GROUP BY cg.group_id, cg.group_name, cg.group_avatar, cg.owner_id, cg.group_type, cg.is_public,
+                 cg.created_at, cg.updated_at, u.username
+        ORDER BY cg.updated_at DESC
+    </select>
+
+    <select id="searchGroups" resultMap="ChatGroupResponseResultMap">
+        SELECT cg.group_id, cg.group_name, cg.group_avatar, cg.owner_id, cg.group_type, cg.is_public,
+               cg.created_at, cg.updated_at,
+               COUNT(gm2.user_id) AS member_count,
+               u.username AS owner_name
+        FROM chat_groups cg
+        JOIN users u ON cg.owner_id = u.user_id
+        LEFT JOIN group_members gm2 ON cg.group_id = gm2.group_id
+        WHERE cg.group_id NOT IN (
+            SELECT gm.group_id FROM group_members gm WHERE gm.user_id = #{userId}
+        )
+        AND (lower(cg.group_name) LIKE lower(concat('%', #{keyword}, '%'))
+             OR cast(cg.group_id AS text) LIKE concat('%', #{keyword}, '%'))
+        GROUP BY cg.group_id, cg.group_name, cg.group_avatar, cg.owner_id, cg.group_type, cg.is_public,
+                 cg.created_at, cg.updated_at, u.username
+        ORDER BY
+          CASE
+            WHEN lower(cg.group_name) = lower(#{keyword}) THEN 3
+            WHEN lower(cg.group_name) LIKE lower(concat(#{keyword}, '%')) THEN 2
+            WHEN cast(cg.group_id AS text) = #{keyword} THEN 2
+            ELSE 1
+          END DESC,
+          cg.created_at DESC
+        LIMIT 20
+    </select>
+
+    <select id="findPublicGroups" resultMap="ChatGroupResponseResultMap">
+        SELECT cg.group_id, cg.group_name, cg.group_avatar, cg.owner_id, cg.group_type, cg.is_public,
+               cg.created_at, cg.updated_at,
+               COUNT(gm2.user_id) AS member_count,
+               u.username AS owner_name
+        FROM chat_groups cg
+        JOIN users u ON cg.owner_id = u.user_id
+        LEFT JOIN group_members gm2 ON cg.group_id = gm2.group_id
+        WHERE cg.is_public = 1
+          AND cg.group_id NOT IN (
+              SELECT gm.group_id FROM group_members gm WHERE gm.user_id = #{userId}
+          )
+        GROUP BY cg.group_id, cg.group_name, cg.group_avatar, cg.owner_id, cg.group_type, cg.is_public,
+                 cg.created_at, cg.updated_at, u.username
+        ORDER BY cg.created_at DESC
+    </select>
+
+    <select id="pageAllGroups" resultMap="ChatGroupResponseResultMap">
+        SELECT cg.group_id, cg.group_name, cg.group_avatar, cg.owner_id, cg.group_type, cg.is_public,
+               cg.created_at, cg.updated_at,
+               COUNT(gm.user_id) AS member_count,
+               u.username AS owner_name
+        FROM chat_groups cg
+        LEFT JOIN group_members gm ON cg.group_id = gm.group_id
+        JOIN users u ON cg.owner_id = u.user_id
+        <where>
+            <if test="keyword != null and keyword != ''">
+                (lower(cg.group_name) LIKE lower(concat('%', #{keyword}, '%')))
+            </if>
+        </where>
+        GROUP BY cg.group_id, cg.group_name, cg.group_avatar, cg.owner_id, cg.group_type, cg.is_public,
+                 cg.created_at, cg.updated_at, u.username
+        ORDER BY cg.created_at DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="countAllGroups" resultType="long">
+        SELECT COUNT(1)
+        FROM chat_groups
+        <where>
+            <if test="keyword != null and keyword != ''">
+                (lower(group_name) LIKE lower(concat('%', #{keyword}, '%')))
+            </if>
+        </where>
+    </select>
+
+    <delete id="deleteGroup">
+        DELETE FROM chat_groups WHERE group_id = #{groupId}
+    </delete>
+
+    <insert id="insertMember" parameterType="com.revy.talkblogback.pojo.GroupMember">
+        INSERT INTO group_members (group_id, user_id, role, joined_at)
+        VALUES (#{groupId}, #{userId}, #{role}, NOW())
+        ON CONFLICT (group_id, user_id) DO NOTHING
+    </insert>
+
+    <delete id="removeMember">
+        DELETE FROM group_members WHERE group_id = #{groupId} AND user_id = #{userId}
+    </delete>
+
+    <select id="findMember" resultMap="GroupMemberResultMap">
+        SELECT id, group_id, user_id, role, joined_at
+        FROM group_members
+        WHERE group_id = #{groupId} AND user_id = #{userId}
+        LIMIT 1
+    </select>
+
+    <select id="findMembersByGroupId" resultMap="GroupMemberResponseResultMap">
+        SELECT gm.id, gm.group_id, gm.user_id, gm.role, gm.joined_at,
+               u.username, u.email, u.avatar_url AS avatar
+        FROM group_members gm
+        JOIN users u ON gm.user_id = u.user_id
+        WHERE gm.group_id = #{groupId}
+        ORDER BY gm.role DESC, gm.joined_at ASC
+    </select>
+
+    <update id="updateMemberRole">
+        UPDATE group_members
+        SET role = #{role}
+        WHERE group_id = #{groupId} AND user_id = #{userId}
+    </update>
+
+    <select id="countMembers" resultType="int">
+        SELECT COUNT(1) FROM group_members WHERE group_id = #{groupId}
+    </select>
+
+    <insert id="insertBanRecord" parameterType="com.revy.talkblogback.pojo.GroupBanRecord">
+        INSERT INTO group_ban_records (group_id, user_id, reason, banned_at, expired_at, banned_by)
+        VALUES (#{groupId}, #{userId}, #{reason}, NOW(), #{expiredAt}, #{bannedBy})
+    </insert>
+
+    <select id="isUserBanned" resultType="int">
+        SELECT COUNT(1)
+        FROM group_ban_records
+        WHERE group_id = #{groupId} AND user_id = #{userId}
+          AND (expired_at IS NULL OR expired_at > NOW())
+    </select>
+
+    
+    <update id="updateGroupName">
+        UPDATE chat_groups SET group_name = #{groupName}, updated_at = NOW() WHERE group_id = #{groupId}
+    </update>
+
+    <update id="updateGroupSettings">
+        UPDATE chat_groups SET group_type = #{groupType}, is_public = #{isPublic}, updated_at = NOW() WHERE group_id = #{groupId}
+    </update>
+
+    <select id="countMessagesByGroupId" resultType="long">
+        SELECT COUNT(1) FROM chat_messages WHERE group_id = #{groupId} AND is_deleted = 0
+    </select>
+
+    <delete id="deleteAllMembers">
+        DELETE FROM group_members WHERE group_id = #{groupId}
+    </delete>
+
+    <delete id="deleteAllMessages">
+        DELETE FROM chat_messages WHERE group_id = #{groupId}
+    </delete>
+
+    <delete id="deleteAllBanRecords">
+        DELETE FROM group_ban_records WHERE group_id = #{groupId}
+    </delete>
+
+</mapper>

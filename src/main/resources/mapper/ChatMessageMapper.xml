@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.revy.talkblogback.mapper.ChatMessageMapper">
+
+    <resultMap id="ChatMessageResultMap" type="com.revy.talkblogback.pojo.ChatMessage">
+        <id column="message_id" property="messageId"/>
+        <result column="group_id" property="groupId"/>
+        <result column="sender_id" property="senderId"/>
+        <result column="message_type" property="messageType"/>
+        <result column="content" property="content"/>
+        <result column="file_url" property="fileUrl"/>
+        <result column="file_name" property="fileName"/>
+        <result column="file_size" property="fileSize"/>
+        <result column="is_deleted" property="isDeleted"/>
+        <result column="is_recalled" property="isRecalled"/>
+        <result column="created_at" property="createdAt"/>
+    </resultMap>
+
+    <resultMap id="ChatMessageResponseResultMap" type="com.revy.talkblogback.pojo.response.ChatMessageResponse">
+        <id column="message_id" property="messageId"/>
+        <result column="group_id" property="groupId"/>
+        <result column="sender_id" property="senderId"/>
+        <result column="message_type" property="messageType"/>
+        <result column="content" property="content"/>
+        <result column="file_url" property="fileUrl"/>
+        <result column="file_name" property="fileName"/>
+        <result column="file_size" property="fileSize"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="sender_username" property="senderUsername"/>
+        <result column="sender_avatar" property="senderAvatar"/>
+        <result column="is_recalled" property="isRecalled"/>
+    </resultMap>
+
+    <insert id="insertMessage" parameterType="com.revy.talkblogback.pojo.ChatMessage" useGeneratedKeys="true"
+            keyProperty="messageId" keyColumn="message_id">
+        INSERT INTO chat_messages (group_id, sender_id, message_type, content, file_url, file_name, file_size, is_deleted, created_at)
+        VALUES (#{groupId}, #{senderId}, #{messageType}, #{content}, #{fileUrl}, #{fileName}, #{fileSize}, 0, NOW())
+    </insert>
+
+    <select id="findMessagesByGroupId" resultMap="ChatMessageResponseResultMap">
+        SELECT cm.message_id, cm.group_id, cm.sender_id, cm.message_type, cm.content,
+               cm.file_url, cm.file_name, cm.file_size, cm.created_at, cm.is_recalled,
+               u.username AS sender_username, u.avatar_url AS sender_avatar
+        FROM chat_messages cm
+        JOIN users u ON cm.sender_id = u.user_id
+        WHERE cm.group_id = #{groupId}
+          AND (cm.is_recalled = 1 OR cm.is_deleted = 0 OR cm.sender_id != #{userId})
+        ORDER BY cm.created_at DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="findMessageById" parameterType="Long" resultMap="ChatMessageResultMap">
+        SELECT message_id, group_id, sender_id, message_type, content, file_url, file_name, file_size, is_deleted, created_at
+        FROM chat_messages
+        WHERE message_id = #{messageId}
+        LIMIT 1
+    </select>
+
+    <delete id="deleteMessage">
+        DELETE FROM chat_messages WHERE message_id = #{messageId}
+    </delete>
+
+    <update id="softDeleteMessage">
+        UPDATE chat_messages SET is_deleted = 1 WHERE message_id = #{messageId}
+    </update>
+
+    <update id="recallMessage">
+        UPDATE chat_messages SET is_recalled = 1, is_deleted = 1, content = '' WHERE message_id = #{messageId}
+    </update>
+
+    <select id="pageAllMessages" resultMap="ChatMessageResponseResultMap">
+        SELECT cm.message_id, cm.group_id, cm.sender_id, cm.message_type, cm.content,
+               cm.file_url, cm.file_name, cm.file_size, cm.created_at,
+               u.username AS sender_username, u.avatar_url AS sender_avatar
+        FROM chat_messages cm
+        JOIN users u ON cm.sender_id = u.user_id
+        <where>
+            AND cm.is_deleted = 0
+            <if test="keyword != null and keyword != ''">
+                AND (lower(cm.content) LIKE lower(concat('%', #{keyword}, '%')))
+            </if>
+            <if test="groupId != null">
+                AND cm.group_id = #{groupId}
+            </if>
+            <if test="userId != null">
+                AND cm.sender_id = #{userId}
+            </if>
+        </where>
+        ORDER BY cm.created_at DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="countAllMessages" resultType="long">
+        SELECT COUNT(1)
+        FROM chat_messages cm
+        <where>
+            AND cm.is_deleted = 0
+            <if test="keyword != null and keyword != ''">
+                AND (lower(cm.content) LIKE lower(concat('%', #{keyword}, '%')))
+            </if>
+            <if test="groupId != null">
+                AND cm.group_id = #{groupId}
+            </if>
+            <if test="userId != null">
+                AND cm.sender_id = #{userId}
+            </if>
+        </where>
+    </select>
+
+</mapper>
