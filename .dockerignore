@@ -1,0 +1,7 @@
+target/
+logs/
+.git/
+.idea/
+.vscode/
+*.md
+face_vector_service/__pycache__/

@@ -2,13 +2,11 @@ spring:
   application:
     name: talkblog-back
 
-  # 数据源配置
   datasource:
-    url: jdbc:postgresql://localhost:5432/talkblog
-    username: postgres
-    password: yourpassword
+    url: jdbc:postgresql://${DB_HOST:localhost}:5432/talkblog
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD:yourpassword}
     driver-class-name: org.postgresql.Driver
-    # HikariCP 连接池配置
     hikari:
       maximum-pool-size: 10
       minimum-idle: 5
@@ -21,34 +19,23 @@ spring:
       schema-locations: classpath:schema.sql
       continue-on-error: true
 
-# 日志配置
 logging:
-  # 日志级别
   level:
-    # 根日志级别
     root: INFO
-    # 应用包日志级别
     "[com.revy]": DEBUG
-    # MyBatis 日志
     "[com.revy.talkblogback.mapper]": DEBUG
     "[org.mybatis]": DEBUG
-    # SQL 日志
     "[org.apache.ibatis]": DEBUG
     "[java.sql]": DEBUG
-    # 连接池日志
     "[com.zaxxer.hikari]": INFO
-    # Spring 框架日志
     "[org.springframework]": INFO
     "[org.springframework.web]": DEBUG
     "[org.springframework.boot]": INFO
-  # 日志文件配置
   file:
     name: logs/talkblog-back.log
-  # 日志输出格式
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
     file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
-  # 日志滚动策略
   logback:
     rollingpolicy:
       max-file-size: 10MB
@@ -64,55 +51,43 @@ management:
     health:
       show-details: always
 
-# 人脸识别服务配置
 face:
   service:
-    url: http://localhost:5000
+    url: http://${FACE_HOST:localhost}:5000
     extract-endpoint: /extract
     health-endpoint: /health
-    timeout: 30000  # 30秒超时
+    timeout: 30000
 
-# 服务器配置
 server:
   port: 8080
-  # 压缩配置
   compression:
     enabled: true
     mime-types: application/json,application/xml,text/html,text/xml,text/plain
-  # Multipart 配置
   servlet:
     multipart:
       enabled: true
       max-file-size: 5MB
       max-request-size: 20MB
 
-# 文件上传配置
 spring.servlet.multipart:
   enabled: true
   max-file-size: 10MB
   max-request-size: 10MB
   location: ./uploads
 
-# 文件存储配置
 app:
   file:
     upload-dir: ./uploads
-    max-size: 10485760  # 10MB
+    max-size: 10485760
     allowed-types: image/jpeg,image/png,image/gif,image/webp,application/pdf,application/zip,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain
 
-# MyBatis 配置
 mybatis:
-  # XML 映射文件位置
   mapper-locations: classpath:/mapper/*.xml
-  # 类型别名包（便于 XML 中简写类型）
   type-aliases-package: com.revy.talkblogback.pojo
-  # TypeHandler 扫描路径
   type-handlers-package: com.revy.talkblogback.handler
   configuration:
-    # 将下划线命名自动映射到驼峰字段，例如 user_id -> userId
     map-underscore-to-camel-case: true
 
-# 文件上传配置
 file:
   upload-dir: uploads
   comment-images-dir: comment-images
